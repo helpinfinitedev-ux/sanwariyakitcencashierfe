@@ -1,9 +1,9 @@
 {
   "expo": {
-    "name": "cashier-touch-pos",
-    "slug": "cashier-touch-pos",
+    "name": "Restaurant Touch POS",
+    "slug": "restaurant-touch-pos",
     "version": "1.0.0",
-    "orientation": "portrait",
+    "orientation": "landscape",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "ios": {
