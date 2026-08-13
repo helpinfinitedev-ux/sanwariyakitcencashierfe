@@ -8,6 +8,7 @@ import { useOrderStore } from '@/stores/useOrderStore';
 import { useFloorStore } from '@/stores/useFloorStore';
 import { formatDate, formatTime, formatCurrency } from '@/utils/formatters';
 import { MOCK_RESTAURANT, MOCK_PRODUCTS, MOCK_CUSTOMERS, MOCK_WAITERS, Order } from '@/mock/data';
+import { Badge } from '@/components/ui/Badge';
 
 export interface HeaderProps {
   showToastMessage?: (msg: string, type?: 'success' | 'error' | 'info') => void;
@@ -15,37 +16,72 @@ export interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({ showToastMessage }) => {
   const { themeMode, toggleTheme } = useSettingsStore();
-  const user = useAuthStore((state) => state.user);
+  const { user, currentUser } = useAuthStore();
   const colors = COLORS[themeMode];
 
   const [time, setTime] = useState(new Date());
   const [showNotifications, setShowNotifications] = useState(false);
-  const { orders, addOrder, updateOrderStatus, cancelOrder } = useOrderStore();
+  const { orders, addOrder, updateOrderStatus, approveAddonOrder, rejectAddonOrder, cancelOrder } =
+    useOrderStore();
   const { tables, updateTableStatus } = useFloorStore();
 
   const [rejectDialogVisible, setRejectDialogVisible] = useState(false);
   const [orderToReject, setOrderToReject] = useState<Order | null>(null);
   const [rejectionReason, setRejectionReason] = useState('');
+  const [rejectReasonError, setRejectReasonError] = useState(false);
 
-  const pendingOrders = orders.filter((o) => o.status === 'pending');
+  const pendingOrders = orders.filter(
+    (o) => o.status === 'pending' || o.addonApprovalStatus === 'PENDING_CASHIER_APPROVAL',
+  );
 
   const handleAcceptOrder = (order: Order) => {
-    updateOrderStatus(order.id, 'accepted');
-    if (order.type === 'dine-in' && order.tableId) {
-      updateTableStatus(order.tableId, 'occupied', order.id, order.waiterId);
-    }
-    if (showToastMessage) {
-      showToastMessage(`Order ${order.orderNumber} accepted!`, 'success');
+    const isAddon = order.isAddon || order.addonApprovalStatus === 'PENDING_CASHIER_APPROVAL';
+    if (isAddon) {
+      approveAddonOrder(order.id);
+      if (showToastMessage) {
+        showToastMessage(
+          `Add-on ${order.orderNumber} for ${order.tableNumber || order.tableName || 'Table'} Approved & Merged!`,
+          'success',
+        );
+      }
+    } else {
+      updateOrderStatus(order.id, 'accepted');
+      if (order.type === 'dine-in' && order.tableId) {
+        updateTableStatus(order.tableId, 'occupied', order.id, order.waiterId);
+      }
+      if (showToastMessage) {
+        showToastMessage(`Order ${order.orderNumber} accepted!`, 'success');
+      }
     }
   };
 
   const handleRejectOrder = (order: Order) => {
     setOrderToReject(order);
+    setRejectionReason('');
+    setRejectReasonError(false);
     setRejectDialogVisible(true);
   };
 
   const confirmRejectOrder = () => {
-    if (orderToReject) {
+    if (!orderToReject) return;
+
+    const isAddon =
+      orderToReject.isAddon || orderToReject.addonApprovalStatus === 'PENDING_CASHIER_APPROVAL';
+
+    if (isAddon && !rejectionReason.trim()) {
+      setRejectReasonError(true);
+      if (showToastMessage) {
+        showToastMessage('Rejection reason is required for Add-on requests.', 'error');
+      }
+      return;
+    }
+
+    if (isAddon) {
+      rejectAddonOrder(orderToReject.id, rejectionReason.trim());
+      if (showToastMessage) {
+        showToastMessage(`Add-on ${orderToReject.orderNumber} rejected.`, 'error');
+      }
+    } else {
       updateOrderStatus(orderToReject.id, 'rejected', rejectionReason);
       if (orderToReject.type === 'dine-in' && orderToReject.tableId) {
         updateTableStatus(orderToReject.tableId, 'available');
@@ -53,49 +89,145 @@ export const Header: React.FC<HeaderProps> = ({ showToastMessage }) => {
       if (showToastMessage) {
         showToastMessage(`Order ${orderToReject.orderNumber} rejected.`, 'error');
       }
-      setRejectDialogVisible(false);
-      setRejectionReason('');
-      setOrderToReject(null);
     }
+
+    setRejectDialogVisible(false);
+    setRejectionReason('');
+    setRejectReasonError(false);
+    setOrderToReject(null);
   };
 
-  const simulateIncomingOrder = () => {
+  const simulateIncomingOrder = (simType?: 'fresh' | 'addon') => {
+    const shouldSimulateAddon =
+      simType === 'addon' ||
+      (simType === undefined &&
+        Math.random() > 0.45 &&
+        orders.some(
+          (o) =>
+            !o.isAddon &&
+            o.type === 'dine-in' &&
+            o.status !== 'completed' &&
+            o.status !== 'cancelled' &&
+            o.status !== 'rejected',
+        ));
+
+    if (shouldSimulateAddon) {
+      // Find an active parent order tied to a table
+      const activeParent = orders.find(
+        (o) =>
+          !o.isAddon &&
+          o.type === 'dine-in' &&
+          o.status !== 'completed' &&
+          o.status !== 'cancelled' &&
+          o.status !== 'rejected',
+      );
+
+      const tableId = activeParent?.tableId || 't-g2';
+      const tableName = activeParent?.tableName || 'Table 2';
+      const tableNumber = activeParent?.tableNumber || tableName;
+      const floorName = activeParent?.floorName || 'Ground Floor';
+      const parentOrderId = activeParent?.id || 'ord-101';
+      const waiter = MOCK_WAITERS[Math.floor(Math.random() * MOCK_WAITERS.length)];
+      const customer = MOCK_CUSTOMERS[Math.floor(Math.random() * MOCK_CUSTOMERS.length)];
+
+      const addonItemsPool = [
+        MOCK_PRODUCTS[9], // Butter Naan
+        MOCK_PRODUCTS[10], // Garlic Naan
+        MOCK_PRODUCTS[18], // Sweet Lassi
+        MOCK_PRODUCTS[12], // Gulab Jamun
+        MOCK_PRODUCTS[16], // Virgin Mojito
+        MOCK_PRODUCTS[4], // Paneer Butter Masala
+      ];
+
+      const chosenProduct = addonItemsPool[Math.floor(Math.random() * addonItemsPool.length)];
+      const qty = Math.floor(Math.random() * 2) + 1;
+      const addonItems = [
+        {
+          product: chosenProduct,
+          quantity: qty,
+          notes: Math.random() > 0.5 ? 'Serve hot with active meal' : undefined,
+        },
+      ];
+
+      const subtotal = addonItems.reduce((s, it) => s + it.product.price * it.quantity, 0);
+      const gst = Math.round(subtotal * 0.18 * 100) / 100;
+      const total = Math.round((subtotal + gst) * 100) / 100;
+      const orderNum = `SK-${1000 + orders.length + 1}-ADD`;
+
+      const newAddonOrder: Order = {
+        id: `ord-addon-${Date.now()}`,
+        orderId: `ord-addon-${Date.now()}`,
+        orderNumber: orderNum,
+        tableId,
+        tableName,
+        tableNumber,
+        floorName,
+        parentOrderId,
+        isAddon: true,
+        addonApprovalStatus: 'PENDING_CASHIER_APPROVAL',
+        waiterId: activeParent?.waiterId || waiter.id,
+        waiterName: activeParent?.waiterName || waiter.name,
+        customerId: activeParent?.customerId || customer.id,
+        customerName: activeParent?.customerName || customer.name,
+        customerPhone: activeParent?.customerPhone || customer.phone,
+        items: addonItems,
+        subtotal,
+        gst,
+        discount: 0,
+        total,
+        status: 'pending',
+        type: 'dine-in',
+        createdAt: new Date().toISOString(),
+        numberOfGuests: activeParent?.numberOfGuests || 2,
+      };
+
+      addOrder(newAddonOrder);
+      if (showToastMessage) {
+        showToastMessage(`Incoming Add-on request received for ${tableName}!`, 'info');
+      }
+      return;
+    }
+
     // 1. Order Number
     const orderNum = `SK-${1000 + orders.length + 1}`;
-    
+
     // 2. Select Order Type
     const types: ('dine-in' | 'takeaway')[] = ['dine-in', 'takeaway'];
     let type = types[Math.floor(Math.random() * types.length)];
-    
+
     // 3. Select Table if Dine-In
     let tableId: string | undefined;
     let tableName: string | undefined;
     let floorName: string | undefined;
-    
+
     if (type === 'dine-in') {
-      const availableTables = tables.filter(t => t.status === 'available');
+      const availableTables = tables.filter((t) => t.status === 'available');
       if (availableTables.length > 0) {
         const randomTable = availableTables[Math.floor(Math.random() * availableTables.length)];
         tableId = randomTable.id;
         tableName = randomTable.name;
-        floorName = randomTable.floorId === 'floor-g' ? 'Ground Floor' : 
-                    randomTable.floorId === 'floor-1' ? 'First Floor (AC)' : 'Rooftop Lounge';
+        floorName =
+          randomTable.floorId === 'floor-g'
+            ? 'Ground Floor'
+            : randomTable.floorId === 'floor-1'
+              ? 'First Floor (AC)'
+              : 'Rooftop Lounge';
       } else {
         // Fallback to takeaway
         type = 'takeaway';
       }
     }
-    
+
     // 4. Select Customer
     const customer = MOCK_CUSTOMERS[Math.floor(Math.random() * MOCK_CUSTOMERS.length)];
     const waiter = MOCK_WAITERS[Math.floor(Math.random() * MOCK_WAITERS.length)];
     const guests = Math.floor(Math.random() * 4) + 1;
-    
+
     // 5. Select Items
     const itemsCount = Math.floor(Math.random() * 3) + 1; // 1 to 3 items
     const selectedItems = [];
     const usedProductIds = new Set<string>();
-    
+
     for (let i = 0; i < itemsCount; i++) {
       let product = MOCK_PRODUCTS[Math.floor(Math.random() * MOCK_PRODUCTS.length)];
       while (usedProductIds.has(product.id)) {
@@ -108,19 +240,25 @@ export const Header: React.FC<HeaderProps> = ({ showToastMessage }) => {
         notes: Math.random() > 0.5 ? 'Less oil, make spicy' : undefined,
       });
     }
-    
+
     // 6. Calculations
-    const subtotal = selectedItems.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
+    const subtotal = selectedItems.reduce(
+      (sum, item) => sum + item.product.price * item.quantity,
+      0,
+    );
     const gst = Math.round(subtotal * 0.18 * 100) / 100;
     const discount = Math.random() > 0.5 ? 50 : 0;
     const total = Math.round((subtotal + gst - discount) * 100) / 100;
-    
+
     const newOrder: Order = {
       id: `ord-${Date.now()}`,
+      orderId: `ord-${Date.now()}`,
       orderNumber: orderNum,
       tableId,
       tableName,
+      tableNumber: tableName,
       floorName,
+      isAddon: false,
       waiterId: waiter.id,
       waiterName: waiter.name,
       customerId: customer.id,
@@ -136,7 +274,7 @@ export const Header: React.FC<HeaderProps> = ({ showToastMessage }) => {
       createdAt: new Date().toISOString(),
       numberOfGuests: guests,
     };
-    
+
     addOrder(newOrder);
     if (showToastMessage) {
       showToastMessage(`New waiter order ${orderNum} received!`, 'info');
@@ -226,18 +364,20 @@ export const Header: React.FC<HeaderProps> = ({ showToastMessage }) => {
         <View style={[styles.profileCard, { backgroundColor: colors.surfaceLight }]}>
           <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
             <Text style={styles.avatarText}>
-              {user?.name
+              {(currentUser?.cashierName || user?.name || 'Cashier')
                 .split(' ')
                 .map((n) => n[0])
-                .join('') || 'CA'}
+                .join('')
+                .slice(0, 2)
+                .toUpperCase() || 'CA'}
             </Text>
           </View>
           <View style={styles.profileTextContainer}>
             <Text style={[styles.profileName, { color: colors.textPrimary }]}>
-              {user?.name || 'Cashier User'}
+              {currentUser?.cashierName || user?.name || 'Cashier User'}
             </Text>
             <Text style={[styles.profileId, { color: colors.textMuted }]}>
-              {user?.employeeId || 'ID: 991'}
+              {currentUser?.employeeId || user?.employeeId || 'EMP-POS'}
             </Text>
           </View>
         </View>
@@ -270,17 +410,31 @@ export const Header: React.FC<HeaderProps> = ({ showToastMessage }) => {
               <View style={styles.drawerHeaderLeft}>
                 <MaterialCommunityIcons name="bell-outline" size={22} color={colors.primary} />
                 <Text style={[styles.drawerTitle, { color: colors.textPrimary }]}>
-                  Pending Orders ({pendingOrders.length})
+                  Pending Approvals ({pendingOrders.length})
                 </Text>
               </View>
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                 <TouchableOpacity
-                  style={[styles.simulateBtn, { backgroundColor: colors.primaryLight, marginRight: SPACING.sm }]}
-                  onPress={simulateIncomingOrder}
+                  style={[
+                    styles.simulateBtn,
+                    { backgroundColor: colors.primaryLight, marginRight: 6 },
+                  ]}
+                  onPress={() => simulateIncomingOrder('fresh')}
                   activeOpacity={0.7}
                 >
-                  <MaterialCommunityIcons name="plus" size={14} color={colors.primary} />
-                  <Text style={[styles.simulateBtnText, { color: colors.primary }]}>Simulate</Text>
+                  <MaterialCommunityIcons name="plus" size={13} color={colors.primary} />
+                  <Text style={[styles.simulateBtnText, { color: colors.primary }]}>+ Fresh</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.simulateBtn,
+                    { backgroundColor: colors.warningLight, marginRight: SPACING.sm },
+                  ]}
+                  onPress={() => simulateIncomingOrder('addon')}
+                  activeOpacity={0.7}
+                >
+                  <MaterialCommunityIcons name="playlist-plus" size={14} color={colors.warning} />
+                  <Text style={[styles.simulateBtnText, { color: colors.warning }]}>+ Add-on</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.closeBtn}
@@ -303,66 +457,119 @@ export const Header: React.FC<HeaderProps> = ({ showToastMessage }) => {
                   No pending orders
                 </Text>
                 <Text style={[styles.emptySubtext, { color: colors.textMuted }]}>
-                  New waiter orders will appear here.
+                  New waiter orders and add-on approval requests will appear here.
                 </Text>
               </View>
             ) : (
-              <ScrollView 
-                style={styles.scrollList} 
+              <ScrollView
+                style={styles.scrollList}
                 contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={true}
               >
                 {pendingOrders.map((order) => {
-                  const tableName = order.tableName || (order.tableId ? `Table ${order.tableId}` : 'N/A');
+                  const isAddonOrder =
+                    order.isAddon || order.addonApprovalStatus === 'PENDING_CASHIER_APPROVAL';
+                  const tableLabel = order.tableNumber || order.tableName || (order.tableId ? `Table ${order.tableId}` : 'N/A');
                   const waiterName = order.waiterName || 'Unknown Waiter';
                   const customerName = order.customerName || 'Walk-in Customer';
                   const customerPhone = order.customerPhone;
                   const guestsCount = order.numberOfGuests || 2;
-                  
+
                   const specialInstructions = order.items
-                    .filter(item => item.notes)
-                    .map(item => `${item.product.name}: ${item.notes}`)
+                    .filter((item) => item.notes)
+                    .map((item) => `${item.product.name}: ${item.notes}`)
                     .join(', ');
 
                   return (
                     <View
                       key={order.id}
-                      style={[styles.orderCard, { backgroundColor: colors.surfaceLight, borderColor: colors.border }]}
+                      style={[
+                        styles.orderCard,
+                        {
+                          backgroundColor: colors.surfaceLight,
+                          borderColor: isAddonOrder ? colors.warning : colors.border,
+                          borderWidth: isAddonOrder ? 1.5 : 1,
+                        },
+                      ]}
                     >
                       {/* Card Header */}
                       <View style={styles.cardHeader}>
-                        <Text style={[styles.orderNo, { color: colors.textPrimary }]}>
-                          {order.orderNumber}
-                        </Text>
-                        <Text style={[styles.orderTime, { color: colors.textSecondary }]}>
-                          {formatTime(order.createdAt)}
-                        </Text>
+                        <View style={styles.cardHeaderTitleCol}>
+                          <Text style={[styles.orderNo, { color: colors.textPrimary }]}>
+                            {isAddonOrder ? `Add-on — ${tableLabel}` : order.orderNumber}
+                          </Text>
+                          <Text style={[styles.orderSubLabel, { color: colors.textMuted }]}>
+                            {isAddonOrder
+                              ? `Order Ref: ${order.orderNumber}${order.parentOrderId ? ` • Parent: ${order.parentOrderId}` : ''}`
+                              : `Fresh Incoming Order`}
+                          </Text>
+                        </View>
+
+                        <View style={styles.cardHeaderRight}>
+                          <Badge
+                            label={isAddonOrder ? 'ADD-ON APPROVAL' : 'NEW ORDER'}
+                            variant={isAddonOrder ? 'warning' : 'primary'}
+                            style={{ marginBottom: 2 }}
+                          />
+                          <Text style={[styles.orderTime, { color: colors.textSecondary }]}>
+                            {formatTime(order.createdAt)}
+                          </Text>
+                        </View>
                       </View>
-                      
+
                       {/* Details Row 1 */}
                       <View style={styles.detailsRow}>
                         <View style={styles.infoCol}>
                           <Text style={[styles.infoLabel, { color: colors.textMuted }]}>Type</Text>
                           <View style={styles.typeBadgeContainer}>
                             <MaterialCommunityIcons
-                              name={order.type === 'dine-in' ? 'table-chair' : 'bag-checked'}
+                              name={
+                                isAddonOrder
+                                  ? 'playlist-plus'
+                                  : order.type === 'dine-in'
+                                    ? 'table-chair'
+                                    : 'bag-checked'
+                              }
                               size={14}
-                              color={order.type === 'dine-in' ? '#3B82F6' : '#F59E0B'}
+                              color={
+                                isAddonOrder
+                                  ? colors.warning
+                                  : order.type === 'dine-in'
+                                    ? '#3B82F6'
+                                    : '#F59E0B'
+                              }
                             />
-                            <Text style={[styles.typeText, { color: order.type === 'dine-in' ? '#3B82F6' : '#F59E0B' }]}>
-                              {order.type === 'dine-in' ? `Dine-In (${tableName})` : 'Takeaway'}
+                            <Text
+                              style={[
+                                styles.typeText,
+                                {
+                                  color: isAddonOrder
+                                    ? colors.warning
+                                    : order.type === 'dine-in'
+                                      ? '#3B82F6'
+                                      : '#F59E0B',
+                                },
+                              ]}
+                            >
+                              {isAddonOrder
+                                ? `Add-on Request (${tableLabel})`
+                                : order.type === 'dine-in'
+                                  ? `Dine-In (${tableLabel})`
+                                  : 'Takeaway'}
                             </Text>
                           </View>
                         </View>
-                        
+
                         <View style={styles.infoCol}>
-                          <Text style={[styles.infoLabel, { color: colors.textMuted }]}>Guests</Text>
+                          <Text style={[styles.infoLabel, { color: colors.textMuted }]}>
+                            {isAddonOrder ? 'Table Ref' : 'Guests'}
+                          </Text>
                           <Text style={[styles.infoValue, { color: colors.textPrimary }]}>
-                            {guestsCount} Guests
+                            {isAddonOrder ? tableLabel : `${guestsCount} Guests`}
                           </Text>
                         </View>
                       </View>
-                      
+
                       {/* Details Row 2 */}
                       <View style={styles.detailsRow}>
                         <View style={styles.infoCol}>
@@ -371,7 +578,7 @@ export const Header: React.FC<HeaderProps> = ({ showToastMessage }) => {
                             {waiterName}
                           </Text>
                         </View>
-                        
+
                         <View style={styles.infoCol}>
                           <Text style={[styles.infoLabel, { color: colors.textMuted }]}>Customer</Text>
                           <Text style={[styles.infoValue, { color: colors.textPrimary }]} numberOfLines={1}>
@@ -387,12 +594,19 @@ export const Header: React.FC<HeaderProps> = ({ showToastMessage }) => {
 
                       {/* Items */}
                       <View style={styles.itemsSection}>
-                        <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>Ordered Items</Text>
+                        <Text style={[styles.sectionTitle, { color: isAddonOrder ? colors.warning : colors.textMuted }]}>
+                          {isAddonOrder ? 'Add-on Items to Merge' : 'Ordered Items'}
+                        </Text>
                         {order.items.map((item, idx) => (
                           <View key={idx} style={styles.itemRow}>
-                            <Text style={[styles.itemQty, { color: colors.primary }]}>{item.quantity}x</Text>
+                            <Text style={[styles.itemQty, { color: isAddonOrder ? colors.warning : colors.primary }]}>
+                              {item.quantity}x
+                            </Text>
                             <Text style={[styles.itemName, { color: colors.textPrimary }]} numberOfLines={1}>
                               {item.product.name}
+                            </Text>
+                            <Text style={[styles.itemPriceText, { color: colors.textSecondary }]}>
+                              {formatCurrency(item.product.price * item.quantity)}
                             </Text>
                           </View>
                         ))}
@@ -400,7 +614,12 @@ export const Header: React.FC<HeaderProps> = ({ showToastMessage }) => {
 
                       {/* Special Instructions */}
                       {specialInstructions ? (
-                        <View style={[styles.instructionsContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                        <View
+                          style={[
+                            styles.instructionsContainer,
+                            { backgroundColor: colors.surface, borderColor: colors.border },
+                          ]}
+                        >
                           <Text style={[styles.instructionsTitle, { color: colors.error }]}>
                             Special Instructions:
                           </Text>
@@ -414,26 +633,41 @@ export const Header: React.FC<HeaderProps> = ({ showToastMessage }) => {
                       <View style={[styles.cardDivider, { borderBottomColor: colors.border }]} />
                       <View style={styles.cardFooter}>
                         <View>
-                          <Text style={[styles.totalLabel, { color: colors.textMuted }]}>Total</Text>
-                          <Text style={[styles.totalValueText, { color: colors.primary }]}>
+                          <Text style={[styles.totalLabel, { color: colors.textMuted }]}>
+                            {isAddonOrder ? 'Add-on Amount' : 'Total'}
+                          </Text>
+                          <Text style={[styles.totalValueText, { color: isAddonOrder ? colors.warning : colors.primary }]}>
                             {formatCurrency(order.total)}
                           </Text>
                         </View>
-                        
+
                         <View style={styles.cardActions}>
                           <TouchableOpacity
                             style={[styles.rejectBtn, { borderColor: colors.error }]}
                             onPress={() => handleRejectOrder(order)}
                             activeOpacity={0.7}
                           >
-                            <Text style={[styles.rejectBtnText, { color: colors.error }]}>Reject Order</Text>
+                            <Text style={[styles.rejectBtnText, { color: colors.error }]}>
+                              {isAddonOrder ? 'Reject Add-on' : 'Reject Order'}
+                            </Text>
                           </TouchableOpacity>
                           <TouchableOpacity
-                            style={[styles.acceptBtn, { backgroundColor: colors.success }]}
+                            style={[
+                              styles.acceptBtn,
+                              { backgroundColor: isAddonOrder ? colors.success : colors.success },
+                            ]}
                             onPress={() => handleAcceptOrder(order)}
                             activeOpacity={0.7}
                           >
-                            <Text style={styles.acceptBtnText}>Accept Order</Text>
+                            <MaterialCommunityIcons
+                              name="check-circle-outline"
+                              size={15}
+                              color="#FFFFFF"
+                              style={{ marginRight: 4 }}
+                            />
+                            <Text style={styles.acceptBtnText}>
+                              {isAddonOrder ? 'Approve & Merge' : 'Accept Order'}
+                            </Text>
                           </TouchableOpacity>
                         </View>
                       </View>
@@ -453,38 +687,58 @@ export const Header: React.FC<HeaderProps> = ({ showToastMessage }) => {
         onRequestClose={() => {
           setRejectDialogVisible(false);
           setRejectionReason('');
+          setRejectReasonError(false);
           setOrderToReject(null);
         }}
         animationType="fade"
       >
         <View style={[styles.dialogOverlay, { backgroundColor: colors.overlay }]}>
           <View style={[styles.dialogBox, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <Text style={[styles.dialogTitle, { color: colors.textPrimary }]}>Reject Order</Text>
-            <Text style={[styles.dialogDescription, { color: colors.textSecondary }]}>
-              Are you sure you want to reject order {orderToReject?.orderNumber}?
+            <Text style={[styles.dialogTitle, { color: colors.textPrimary }]}>
+              {orderToReject?.isAddon || orderToReject?.addonApprovalStatus === 'PENDING_CASHIER_APPROVAL'
+                ? 'Reject Add-on Request'
+                : 'Reject Order'}
             </Text>
-            
+            <Text style={[styles.dialogDescription, { color: colors.textSecondary }]}>
+              {orderToReject?.isAddon || orderToReject?.addonApprovalStatus === 'PENDING_CASHIER_APPROVAL'
+                ? `Are you sure you want to reject the add-on order (${orderToReject?.orderNumber}) for ${orderToReject?.tableNumber || orderToReject?.tableName || 'Table'}? A rejection reason is required for the waiter app.`
+                : `Are you sure you want to reject order ${orderToReject?.orderNumber}?`}
+            </Text>
+
             <TextInput
               style={[
                 styles.reasonInput,
                 {
-                  borderColor: colors.border,
+                  borderColor: rejectReasonError ? colors.error : colors.border,
                   backgroundColor: colors.surfaceLight,
                   color: colors.textPrimary,
                 },
               ]}
-              placeholder="Reason for rejection (optional)"
+              placeholder={
+                orderToReject?.isAddon || orderToReject?.addonApprovalStatus === 'PENDING_CASHIER_APPROVAL'
+                  ? 'Reason for rejection (Required, e.g. Out of stock, table leaving)...'
+                  : 'Reason for rejection (optional)'
+              }
               placeholderTextColor={colors.textMuted}
               value={rejectionReason}
-              onChangeText={setRejectionReason}
+              onChangeText={(text) => {
+                setRejectionReason(text);
+                if (text.trim()) setRejectReasonError(false);
+              }}
             />
-            
+            {rejectReasonError && (
+              <Text style={[styles.errorText, { color: colors.error }]}>
+                * Please provide a reason to notify the waiter app.
+              </Text>
+            )}
+
             <View style={styles.dialogActions}>
               <TouchableOpacity
                 style={[styles.dialogBtn, styles.cancelBtn, { borderColor: colors.border }]}
                 onPress={() => {
                   setRejectDialogVisible(false);
                   setRejectionReason('');
+                  setRejectReasonError(false);
                   setOrderToReject(null);
                 }}
               >
@@ -680,8 +934,19 @@ const styles = StyleSheet.create({
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     marginBottom: SPACING.sm,
+  },
+  cardHeaderTitleCol: {
+    flex: 1,
+    paddingRight: SPACING.sm,
+  },
+  cardHeaderRight: {
+    alignItems: 'flex-end',
+  },
+  orderSubLabel: {
+    fontSize: 11,
+    marginTop: 2,
   },
   orderNo: {
     fontSize: TYPOGRAPHY.sizes.sm,
@@ -689,6 +954,17 @@ const styles = StyleSheet.create({
   },
   orderTime: {
     fontSize: 11,
+    marginTop: 2,
+  },
+  itemPriceText: {
+    fontSize: TYPOGRAPHY.sizes.xs,
+    marginLeft: SPACING.xs,
+  },
+  errorText: {
+    fontSize: 11,
+    marginTop: -SPACING.md,
+    marginBottom: SPACING.md,
+    fontStyle: 'italic',
   },
   detailsRow: {
     flexDirection: 'row',

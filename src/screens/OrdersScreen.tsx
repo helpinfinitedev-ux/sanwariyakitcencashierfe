@@ -21,10 +21,13 @@ import { Button } from '@/components/ui/Button';
 import { Dialog } from '@/components/ui/Dialog';
 import { formatCurrency, formatDate, formatTime } from '@/utils/formatters';
 import { Order } from '@/mock/data';
+import { ReceiptPreviewModal } from '@/components/ui/ReceiptPreviewModal';
+import { WhatsAppModal } from '@/components/ui/WhatsAppModal';
+import { printKOT } from '@/services/printService';
 
 interface OrdersScreenProps {
   onNavigate: (route: string) => void;
-  showToastMessage: (msg: string) => void;
+  showToastMessage: (msg: string, type?: 'success' | 'error' | 'info') => void;
 }
 
 export const OrdersScreen: React.FC<OrdersScreenProps> = ({ onNavigate, showToastMessage }) => {
@@ -46,6 +49,10 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({ onNavigate, showToas
   // Cancel Confirmation
   const [cancelDialogVisible, setCancelDialogVisible] = useState(false);
 
+  // Print & WhatsApp Modals
+  const [receiptModalVisible, setReceiptModalVisible] = useState(false);
+  const [whatsAppModalVisible, setWhatsAppModalVisible] = useState(false);
+
   // Filtering orders
   const filteredOrders = orders.filter((order) => {
     if (activeTab === 'active') {
@@ -64,7 +71,7 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({ onNavigate, showToas
     if (selectedOrder) {
       loadOrderIntoCart(selectedOrder);
       setDetailModalVisible(false);
-      showToastMessage(`Loaded order ${selectedOrder.orderNumber} for editing.`);
+      showToastMessage(`Loaded order ${selectedOrder.orderNumber} for editing.`, 'info');
       onNavigate('menu');
     }
   };
@@ -86,14 +93,26 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({ onNavigate, showToas
 
       setCancelDialogVisible(false);
       setDetailModalVisible(false);
-      showToastMessage(`Order ${selectedOrder.orderNumber} Cancelled.`);
+      showToastMessage(`Order ${selectedOrder.orderNumber} Cancelled.`, 'error');
     }
   };
 
-  const handlePrintKOT = () => {
+  const handlePrintKOT = async () => {
     if (selectedOrder) {
-      showToastMessage(`KOT Printed for ${selectedOrder.orderNumber}`);
-      setDetailModalVisible(false);
+      const res = await printKOT(selectedOrder);
+      showToastMessage(res.message, 'success');
+    }
+  };
+
+  const handleOpenReceiptModal = () => {
+    if (selectedOrder) {
+      setReceiptModalVisible(true);
+    }
+  };
+
+  const handleOpenWhatsAppModal = () => {
+    if (selectedOrder) {
+      setWhatsAppModalVisible(true);
     }
   };
 
@@ -351,17 +370,24 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({ onNavigate, showToas
                 ) : (
                   <>
                     <Button
-                      label="Print Final Bill Receipt"
+                      label="Print 80mm Receipt"
                       variant="primary"
                       icon="printer"
-                      onPress={handlePrintKOT}
-                      style={{ flex: 1 }}
+                      onPress={handleOpenReceiptModal}
+                      style={{ flex: 1, marginRight: SPACING.xs }}
                     />
                     <Button
-                      label="Close View"
+                      label="WhatsApp Bill"
+                      variant="secondary"
+                      icon="whatsapp"
+                      onPress={handleOpenWhatsAppModal}
+                      style={{ flex: 1, marginRight: SPACING.xs }}
+                    />
+                    <Button
+                      label="Close"
                       variant="outline"
                       onPress={() => setDetailModalVisible(false)}
-                      style={{ marginLeft: SPACING.md, width: 120 }}
+                      style={{ width: 100 }}
                     />
                   </>
                 )}
@@ -370,6 +396,24 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({ onNavigate, showToas
           </View>
         </View>
       </Modal>
+
+      {/* Reusable 80mm Receipt Preview Modal */}
+      <ReceiptPreviewModal
+        visible={receiptModalVisible}
+        order={selectedOrder}
+        onClose={() => setReceiptModalVisible(false)}
+        onPrintSuccess={(msg) => showToastMessage(msg, 'success')}
+      />
+
+      {/* Reusable WhatsApp Bill Modal */}
+      <WhatsAppModal
+        visible={whatsAppModalVisible}
+        order={selectedOrder}
+        initialPhone={selectedOrder?.customerPhone}
+        onClose={() => setWhatsAppModalVisible(false)}
+        onSuccess={(msg) => showToastMessage(msg, 'success')}
+        onError={(err) => showToastMessage(err, 'error')}
+      />
 
       {/* Cancel dialog */}
       <Dialog

@@ -19,10 +19,12 @@ import { useFloorStore } from '@/stores/useFloorStore';
 import { formatCurrency, generateOrderId, generateOrderNumber } from '@/utils/formatters';
 import { Button } from '@/components/ui/Button';
 import { Order } from '@/mock/data';
+import { ReceiptPreviewModal } from '@/components/ui/ReceiptPreviewModal';
+import { WhatsAppModal } from '@/components/ui/WhatsAppModal';
 
 interface BillingScreenProps {
   onNavigate: (route: string) => void;
-  showToastMessage: (msg: string) => void;
+  showToastMessage: (msg: string, type?: 'success' | 'error' | 'info') => void;
 }
 
 type PaymentMethodType = 'cash' | 'card' | 'upi';
@@ -44,6 +46,7 @@ export const BillingScreen: React.FC<BillingScreenProps> = ({ onNavigate, showTo
     selectedCustomerId,
     selectedCustomerName,
     selectedCustomerPhone,
+    discount,
     editingOrderId,
     clearCart,
     getCalculations,
@@ -62,9 +65,44 @@ export const BillingScreen: React.FC<BillingScreenProps> = ({ onNavigate, showTo
   const [cashReceived, setCashReceived] = useState(total.toString());
   const [upiQrVisible, setUpiQrVisible] = useState(false);
 
+  // Post-Payment & Print/WhatsApp Modals
+  const [settledOrder, setSettledOrder] = useState<Order | null>(null);
+  const [successModalVisible, setSuccessModalVisible] = useState(false);
+  const [receiptModalVisible, setReceiptModalVisible] = useState(false);
+  const [whatsAppModalVisible, setWhatsAppModalVisible] = useState(false);
+  const [activeOrderForModal, setActiveOrderForModal] = useState<Order | null>(null);
+
   // Calculations for cash change
   const numericCashReceived = parseFloat(cashReceived) || 0;
   const changeReturn = Math.max(0, numericCashReceived - total);
+
+  // Current draft order representation for pre-settlement preview
+  const currentDraftOrder: Order = {
+    id: editingOrderId || 'draft-ord',
+    orderId: editingOrderId || 'draft-ord',
+    orderNumber: editingOrderId
+      ? orders.find((o) => o.id === editingOrderId)?.orderNumber || 'SK-DRAFT'
+      : 'SK-DRAFT',
+    tableId: selectedTableId,
+    tableName: selectedTableName,
+    tableNumber: selectedTableName,
+    floorName: selectedFloorName,
+    waiterId: selectedWaiterId,
+    waiterName: selectedWaiterName,
+    customerId: selectedCustomerId,
+    customerName: selectedCustomerName,
+    customerPhone: selectedCustomerPhone,
+    items: cartItems,
+    subtotal,
+    gst,
+    discount: discountAmount,
+    total,
+    status: 'billing',
+    type: selectedTableId ? 'dine-in' : 'takeaway',
+    paymentMethod: payMethod,
+    isAddon: false,
+    createdAt: new Date().toISOString(),
+  };
 
   // Suggested tender options
   const quickCashOptions = [
@@ -79,10 +117,33 @@ export const BillingScreen: React.FC<BillingScreenProps> = ({ onNavigate, showTo
     setCashReceived(value.toString());
   };
 
+  const openReceiptModalForDraft = () => {
+    if (cartItems.length === 0) {
+      showToastMessage('Cart is empty. Add products to print receipt.', 'error');
+      return;
+    }
+    setActiveOrderForModal(currentDraftOrder);
+    setReceiptModalVisible(true);
+  };
+
+  const openWhatsAppModalForDraft = () => {
+    if (cartItems.length === 0) {
+      showToastMessage('Cart is empty. Add products to send WhatsApp bill.', 'error');
+      return;
+    }
+    setActiveOrderForModal(currentDraftOrder);
+    setWhatsAppModalVisible(true);
+  };
+
   const handleCompleteTransaction = () => {
+    if (cartItems.length === 0) {
+      showToastMessage('Cannot finalize an empty bill.', 'error');
+      return;
+    }
+
     // Validate cash received
     if (payMethod === 'cash' && numericCashReceived < total) {
-      showToastMessage('Cash received is less than total payable.');
+      showToastMessage('Cash received is less than total payable.', 'error');
       return;
     }
 
@@ -94,16 +155,18 @@ export const BillingScreen: React.FC<BillingScreenProps> = ({ onNavigate, showTo
 
     const finalOrder: Order = {
       id: orderId,
+      orderId,
       orderNumber,
       tableId: selectedTableId,
       tableName: selectedTableName,
+      tableNumber: selectedTableName,
       floorName: selectedFloorName,
       waiterId: selectedWaiterId,
       waiterName: selectedWaiterName,
       customerId: selectedCustomerId,
       customerName: selectedCustomerName,
       customerPhone: selectedCustomerPhone,
-      items: cartItems,
+      items: [...cartItems],
       subtotal,
       gst,
       discount: discountAmount,
@@ -111,17 +174,18 @@ export const BillingScreen: React.FC<BillingScreenProps> = ({ onNavigate, showTo
       status: 'completed',
       type: selectedTableId ? 'dine-in' : 'takeaway',
       paymentMethod: payMethod,
+      isAddon: false,
       createdAt: new Date().toISOString(),
     };
 
     // Store KOT finalized transition
     if (isEditing) {
       completeOrder(orderId, payMethod);
-      showToastMessage(`Invoice Completed: ${orderNumber}`);
+      showToastMessage(`Invoice Completed: ${orderNumber}`, 'success');
     } else {
       addOrder(finalOrder);
       completeOrder(orderId, payMethod);
-      showToastMessage(`Direct Invoice Completed: ${orderNumber}`);
+      showToastMessage(`Direct Invoice Completed: ${orderNumber}`, 'success');
     }
 
     // Update sales metrics in store
@@ -132,13 +196,35 @@ export const BillingScreen: React.FC<BillingScreenProps> = ({ onNavigate, showTo
       updateTableStatus(selectedTableId, 'available');
     }
 
+    // Clear cart and show post-payment settlement modal
     clearCart();
-    onNavigate('floor'); // Redirect to floor map
+    setSettledOrder(finalOrder);
+    setSuccessModalVisible(true);
+  };
+
+  const handlePostPaymentPrint = () => {
+    if (settledOrder) {
+      setActiveOrderForModal(settledOrder);
+      setReceiptModalVisible(true);
+    }
+  };
+
+  const handlePostPaymentWhatsApp = () => {
+    if (settledOrder) {
+      setActiveOrderForModal(settledOrder);
+      setWhatsAppModalVisible(true);
+    }
+  };
+
+  const handleDismissSuccess = (routeTo: 'floor' | 'menu') => {
+    setSuccessModalVisible(false);
+    setSettledOrder(null);
+    onNavigate(routeTo);
   };
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <Text style={[styles.title, { color: colors.textPrimary }]}>Collect Payment</Text>
+      <Text style={[styles.title, { color: colors.textPrimary }]}>Collect Payment & Invoicing</Text>
 
       <View style={styles.contentRow}>
         {/* Column 1: Receipt Preview */}
@@ -209,6 +295,37 @@ export const BillingScreen: React.FC<BillingScreenProps> = ({ onNavigate, showTo
                 {formatCurrency(total)}
               </Text>
             </View>
+          </View>
+
+          {/* Quick Pre-Payment Bill Actions */}
+          <View style={[styles.quickBillActionsRow, { borderTopColor: colors.border }]}>
+            <TouchableOpacity
+              onPress={openReceiptModalForDraft}
+              activeOpacity={0.7}
+              style={[
+                styles.quickBillBtn,
+                { backgroundColor: colors.surfaceLight, borderColor: colors.border },
+              ]}
+            >
+              <MaterialCommunityIcons name="printer-outline" size={18} color={colors.textPrimary} />
+              <Text style={[styles.quickBillBtnText, { color: colors.textPrimary }]}>
+                80mm Preview
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={openWhatsAppModalForDraft}
+              activeOpacity={0.7}
+              style={[
+                styles.quickBillBtn,
+                { backgroundColor: colors.surfaceLight, borderColor: colors.border },
+              ]}
+            >
+              <MaterialCommunityIcons name="whatsapp" size={18} color="#25D366" />
+              <Text style={[styles.quickBillBtnText, { color: colors.textPrimary }]}>
+                WhatsApp Bill
+              </Text>
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -425,15 +542,15 @@ export const BillingScreen: React.FC<BillingScreenProps> = ({ onNavigate, showTo
               {/* Action row at bottom */}
               <View style={styles.terminalActionsRow}>
                 <Button
-                  label="Cancel Collection"
+                  label="Cancel"
                   variant="outline"
                   onPress={() => onNavigate('menu')}
                   style={styles.cancelColBtn}
                 />
                 <Button
-                  label="Print Invoice & Finalize"
+                  label="Settle & Complete Invoice"
                   variant="primary"
-                  icon="printer"
+                  icon="check-circle-outline"
                   onPress={handleCompleteTransaction}
                   style={styles.finalizeColBtn}
                 />
@@ -623,15 +740,15 @@ export const BillingScreen: React.FC<BillingScreenProps> = ({ onNavigate, showTo
 
             <View style={styles.terminalActionsRow}>
               <Button
-                label="Cancel Collection"
+                label="Cancel"
                 variant="outline"
                 onPress={() => onNavigate('menu')}
                 style={styles.cancelColBtn}
               />
               <Button
-                label="Print Invoice & Finalize"
+                label="Settle & Complete Invoice"
                 variant="primary"
-                icon="printer"
+                icon="check-circle-outline"
                 onPress={handleCompleteTransaction}
                 style={styles.finalizeColBtn}
               />
@@ -681,6 +798,136 @@ export const BillingScreen: React.FC<BillingScreenProps> = ({ onNavigate, showTo
           </View>
         </View>
       </Modal>
+
+      {/* Post-Payment Settlement Success Modal */}
+      <Modal transparent visible={successModalVisible} animationType="fade">
+        <View style={[styles.qrOverlay, { backgroundColor: colors.overlay }]}>
+          <View
+            style={[
+              styles.successModalBox,
+              { backgroundColor: colors.surface, borderColor: colors.border },
+              SHADOWS.xl,
+            ]}
+          >
+            {/* Header / Success Icon */}
+            <View style={styles.successIconBadge}>
+              <MaterialCommunityIcons name="check-decagram" size={64} color={colors.success} />
+            </View>
+
+            <Text style={[styles.successTitle, { color: colors.textPrimary }]}>
+              Payment Successful!
+            </Text>
+            <Text style={[styles.successSubtitle, { color: colors.textSecondary }]}>
+              Invoice #{settledOrder?.orderNumber} has been finalized.
+            </Text>
+
+            <View
+              style={[
+                styles.successSummaryCard,
+                { backgroundColor: colors.surfaceLight, borderColor: colors.border },
+              ]}
+            >
+              <View style={styles.successSummaryRow}>
+                <Text style={[styles.summaryRowLabel, { color: colors.textSecondary }]}>
+                  Amount Settled
+                </Text>
+                <Text style={[styles.summaryRowValBold, { color: colors.primary }]}>
+                  {formatCurrency(settledOrder?.total || 0)}
+                </Text>
+              </View>
+              <View style={styles.successSummaryRow}>
+                <Text style={[styles.summaryRowLabel, { color: colors.textSecondary }]}>
+                  Payment Method
+                </Text>
+                <Text style={[styles.summaryRowVal, { color: colors.textPrimary }]}>
+                  {(settledOrder?.paymentMethod || 'CASH').toUpperCase()}
+                </Text>
+              </View>
+              {settledOrder?.tableName && (
+                <View style={styles.successSummaryRow}>
+                  <Text style={[styles.summaryRowLabel, { color: colors.textSecondary }]}>
+                    Table Status
+                  </Text>
+                  <Text style={[styles.summaryRowVal, { color: colors.success }]}>
+                    Released & Available
+                  </Text>
+                </View>
+              )}
+            </View>
+
+            {/* Quick Bill Actions Post Payment */}
+            <Text style={[styles.deliveryActionsTitle, { color: colors.textSecondary }]}>
+              Deliver Bill to Customer
+            </Text>
+
+            <View style={styles.postBillActionsRow}>
+              <TouchableOpacity
+                onPress={handlePostPaymentPrint}
+                activeOpacity={0.7}
+                style={[
+                  styles.postBillActionBtn,
+                  { backgroundColor: colors.surfaceLight, borderColor: colors.border },
+                ]}
+              >
+                <MaterialCommunityIcons name="printer" size={24} color={colors.primary} />
+                <Text style={[styles.postBillActionText, { color: colors.textPrimary }]}>
+                  Print 80mm Receipt
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={handlePostPaymentWhatsApp}
+                activeOpacity={0.7}
+                style={[
+                  styles.postBillActionBtn,
+                  { backgroundColor: 'rgba(37, 211, 102, 0.1)', borderColor: '#25D366' },
+                ]}
+              >
+                <MaterialCommunityIcons name="whatsapp" size={24} color="#25D366" />
+                <Text style={[styles.postBillActionText, { color: colors.textPrimary }]}>
+                  Send on WhatsApp
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Navigation Buttons */}
+            <View style={styles.successFooterRow}>
+              <Button
+                label="Return to Floor"
+                variant="outline"
+                icon="floor-plan"
+                onPress={() => handleDismissSuccess('floor')}
+                style={{ flex: 0.48 }}
+              />
+              <Button
+                label="Start New Order"
+                variant="primary"
+                icon="food-fork-drink"
+                onPress={() => handleDismissSuccess('menu')}
+                style={{ flex: 0.48 }}
+              />
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Reusable 80mm Receipt Preview Modal */}
+      <ReceiptPreviewModal
+        visible={receiptModalVisible}
+        order={activeOrderForModal}
+        onClose={() => setReceiptModalVisible(false)}
+        onPrintSuccess={(msg) => showToastMessage(msg, 'success')}
+      />
+
+      {/* Reusable WhatsApp Bill Modal */}
+      <WhatsAppModal
+        visible={whatsAppModalVisible}
+        order={activeOrderForModal}
+        initialPhone={activeOrderForModal?.customerPhone}
+        onClose={() => setWhatsAppModalVisible(false)}
+        onSuccess={(msg) => showToastMessage(msg, 'success')}
+        onError={(err) => showToastMessage(err, 'error')}
+      />
     </View>
   );
 };
@@ -987,4 +1234,106 @@ const styles = StyleSheet.create({
     width: '100%',
     minHeight: 56,
   },
+  // Quick Bill Actions in Left Panel
+  quickBillActionsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingTop: SPACING.sm,
+    borderTopWidth: 1,
+    marginTop: SPACING.xs,
+  },
+  quickBillBtn: {
+    flex: 0.48,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 42,
+    borderRadius: RADIUS.sm,
+    borderWidth: 1,
+  },
+  quickBillBtnText: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    marginLeft: 4,
+  },
+  // Post Payment Success Modal
+  successModalBox: {
+    width: 460,
+    maxWidth: '90%',
+    borderWidth: 1,
+    borderRadius: RADIUS.lg,
+    padding: SPACING.lg,
+    alignItems: 'center',
+  },
+  successIconBadge: {
+    marginBottom: SPACING.xs,
+  },
+  successTitle: {
+    fontSize: TYPOGRAPHY.sizes.xl,
+    fontWeight: TYPOGRAPHY.weights.bold,
+  },
+  successSubtitle: {
+    fontSize: TYPOGRAPHY.sizes.xs,
+    marginTop: 2,
+    marginBottom: SPACING.md,
+  },
+  successSummaryCard: {
+    width: '100%',
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    padding: SPACING.md,
+    marginBottom: SPACING.md,
+  },
+  successSummaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: SPACING.xs,
+  },
+  summaryRowLabel: {
+    fontSize: TYPOGRAPHY.sizes.sm,
+  },
+  summaryRowVal: {
+    fontSize: TYPOGRAPHY.sizes.sm,
+    fontWeight: '600',
+  },
+  summaryRowValBold: {
+    fontSize: TYPOGRAPHY.sizes.md,
+    fontWeight: 'bold',
+  },
+  deliveryActionsTitle: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: SPACING.xs,
+    alignSelf: 'flex-start',
+  },
+  postBillActionsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginBottom: SPACING.lg,
+  },
+  postBillActionBtn: {
+    flex: 0.48,
+    height: 60,
+    borderRadius: RADIUS.md,
+    borderWidth: 1.5,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: SPACING.sm,
+  },
+  postBillActionText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    marginLeft: SPACING.xs,
+  },
+  successFooterRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+  },
 });
+

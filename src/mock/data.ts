@@ -61,6 +61,7 @@ export interface Customer {
 
 export type OrderStatus = 'pending' | 'preparing' | 'ready' | 'billing' | 'completed' | 'cancelled' | 'accepted' | 'rejected';
 export type OrderType = 'dine-in' | 'takeaway' | 'delivery';
+export type AddonApprovalStatus = 'PENDING_CASHIER_APPROVAL' | 'APPROVED' | 'REJECTED';
 
 export interface OrderItem {
   product: Product;
@@ -70,9 +71,14 @@ export interface OrderItem {
 
 export interface Order {
   id: string;
+  orderId?: string;
   orderNumber: string;
   tableId?: string;
   tableName?: string;
+  tableNumber?: string;
+  parentOrderId?: string;
+  isAddon?: boolean;
+  addonApprovalStatus?: AddonApprovalStatus;
   floorName?: string;
   waiterId?: string;
   waiterName?: string;
@@ -571,9 +577,11 @@ export const MOCK_CUSTOMERS: Customer[] = [
 export const MOCK_ORDERS: Order[] = [
   {
     id: 'ord-101',
+    orderId: 'ord-101',
     orderNumber: 'SK-1001',
     tableId: 't-g2',
     tableName: 'Table 2',
+    tableNumber: 'Table 2',
     floorName: 'Ground Floor',
     waiterId: 'w-01',
     waiterName: 'Rahul Sharma',
@@ -590,13 +598,16 @@ export const MOCK_ORDERS: Order[] = [
     total: 1268.8,
     status: 'preparing',
     type: 'dine-in',
+    isAddon: false,
     createdAt: '2026-07-10T08:30:00Z',
   },
   {
     id: 'ord-102',
+    orderId: 'ord-102',
     orderNumber: 'SK-1002',
     tableId: 't-g5',
     tableName: 'Table 5',
+    tableNumber: 'Table 5',
     floorName: 'Ground Floor',
     waiterId: 'w-02',
     waiterName: 'Amit Verma',
@@ -610,13 +621,16 @@ export const MOCK_ORDERS: Order[] = [
     total: 696.2,
     status: 'billing',
     type: 'dine-in',
+    isAddon: false,
     createdAt: '2026-07-10T08:50:00Z',
   },
   {
     id: 'ord-103',
+    orderId: 'ord-103',
     orderNumber: 'SK-1003',
     tableId: 't-g8',
     tableName: 'Table 8',
+    tableNumber: 'Table 8',
     floorName: 'Ground Floor',
     waiterId: 'w-03',
     waiterName: 'Rohan Gupta',
@@ -632,13 +646,16 @@ export const MOCK_ORDERS: Order[] = [
     total: 1714.4,
     status: 'preparing',
     type: 'dine-in',
+    isAddon: false,
     createdAt: '2026-07-10T09:10:00Z',
   },
   {
     id: 'ord-104',
+    orderId: 'ord-104',
     orderNumber: 'SK-1004',
     tableId: 't-f2',
     tableName: 'Table A2',
+    tableNumber: 'Table A2',
     floorName: 'First Floor (AC)',
     waiterId: 'w-04',
     waiterName: 'Vikram Singh',
@@ -651,6 +668,7 @@ export const MOCK_ORDERS: Order[] = [
     total: 424.8,
     status: 'pending',
     type: 'dine-in',
+    isAddon: false,
     createdAt: '2026-07-10T09:20:00Z',
   },
 ];

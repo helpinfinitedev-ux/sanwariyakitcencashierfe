@@ -100,10 +100,13 @@ export const RightPanel: React.FC<RightPanelProps> = ({
 
     const newOrder: Order = {
       id: orderId,
+      orderId,
       orderNumber,
       tableId: selectedTableId,
       tableName: selectedTableName,
+      tableNumber: selectedTableName,
       floorName: selectedFloorName,
+      isAddon: false,
       waiterId: selectedWaiterId,
       waiterName: selectedWaiterName,
       customerId: selectedCustomerId,
