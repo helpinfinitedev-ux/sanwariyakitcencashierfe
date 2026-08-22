@@ -1,10 +1,9 @@
-import { MOCK_CASHIER_CREDENTIALS, CashierCredential } from '@/mock/credentials';
-import { mockDelay } from '@/utils/formatters';
+import axios from 'axios';
 
 export interface AuthUser {
   id: string;
   cashierName: string;
-  name: string; // compatibility alias
+  name: string;
   mobileNumber: string;
   employeeId: string;
   role: 'CASHIER';
@@ -28,111 +27,99 @@ export interface AuthErrorResponse {
 
 export type AuthResponse = AuthSuccessResponse | AuthErrorResponse;
 
-/**
- * Sanitizes input phone number to 10 standard digits
- */
-export const sanitizeMobile = (input: string): string => {
-  const digits = input.replace(/\D/g, '');
-  return digits.slice(-10);
+const STORAGE_SESSION_KEY = 'sanwariya_pos_cashier_session';
+
+const getStoredToken = (): string | null => {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const raw = window.localStorage.getItem(STORAGE_SESSION_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        return parsed.token || null;
+      }
+    }
+  } catch {
+    // Ignore localStorage errors
+  }
+  return null;
 };
 
-/**
- * Mock authentication service contract matching KDS and Store Manager ERP backends.
- */
+// API Base URL config matching process.env
+const getApiUrl = () => {
+  const envUrl = process.env.EXPO_PUBLIC_API_URL;
+  if (!envUrl || envUrl === 'mock_api_url') {
+    return 'http://localhost:5000/api';
+  }
+  return envUrl.endsWith('/api') ? envUrl : `${envUrl}/api`;
+};
+
+export const api = axios.create({
+  baseURL: getApiUrl(),
+  timeout: 10000,
+});
+
+api.interceptors.request.use((config) => {
+  const token = getStoredToken();
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+const mapBackendUserToAuthUser = (user: any): AuthUser => ({
+  id: user.id || user._id,
+  cashierName: user.name,
+  name: user.name,
+  mobileNumber: user.phoneNumber,
+  employeeId: user.id || user._id,
+  role: 'CASHIER',
+  storeId: 'store-1',
+  storeName: 'Sanwariya Kitchen',
+  branchName: 'Main Branch - Sector V',
+  isActive: user.isActive ?? true,
+});
+
 export const authService = {
-  /**
-   * Validates cashier credentials against the external admin managed credential store.
-   */
   login: async (mobileNumber: string, password: string): Promise<AuthResponse> => {
-    // Simulate network delay (300 - 500ms)
-    await mockDelay(400);
+    try {
+      const response = await api.post('/auth/login', {
+        phoneNumber: mobileNumber,
+        password,
+      });
 
-    const cleanMobile = sanitizeMobile(mobileNumber);
+      const { token, user } = response.data.data;
 
-    if (!cleanMobile || cleanMobile.length < 10) {
+      if (user.role !== 'cashier' && user.role !== 'admin') {
+        return {
+          success: false,
+          errorCode: 'INVALID_ROLE',
+          message: 'Access Denied: Only Cashiers can login to POS.',
+        };
+      }
+
+      return {
+        success: true,
+        token,
+        user: mapBackendUserToAuthUser(user),
+      };
+    } catch (error: any) {
+      const message = error.response?.data?.message || 'Invalid credentials or server error.';
       return {
         success: false,
         errorCode: 'INVALID_CREDENTIALS',
-        message: 'Please enter a valid 10-digit mobile number.',
+        message,
       };
     }
-
-    if (!password || password.trim().length === 0) {
-      return {
-        success: false,
-        errorCode: 'INVALID_CREDENTIALS',
-        message: 'Password cannot be empty.',
-      };
-    }
-
-    // Lookup matching account in credential store
-    const matchedAccount = MOCK_CASHIER_CREDENTIALS.find(
-      (c) => sanitizeMobile(c.mobileNumber) === cleanMobile,
-    );
-
-    // Rule 1: No match or wrong password -> Generic invalid message
-    if (!matchedAccount || matchedAccount.password !== password) {
-      return {
-        success: false,
-        errorCode: 'INVALID_CREDENTIALS',
-        message: 'Invalid mobile number or password.',
-      };
-    }
-
-    // Rule 2: Account exists but deactivated by Super Admin -> Access Revoked message
-    if (!matchedAccount.isActive) {
-      return {
-        success: false,
-        errorCode: 'ACCESS_REVOKED',
-        message: 'Access revoked. Contact your admin.',
-      };
-    }
-
-    // Rule 3: Valid active cashier -> Generate mock session token
-    const token = `mock-pos-jwt-${matchedAccount.id}-${Date.now()}`;
-    const user: AuthUser = {
-      id: matchedAccount.id,
-      cashierName: matchedAccount.cashierName,
-      name: matchedAccount.cashierName,
-      mobileNumber: matchedAccount.mobileNumber,
-      employeeId: matchedAccount.employeeId,
-      role: 'CASHIER',
-      storeId: matchedAccount.storeId,
-      storeName: matchedAccount.storeName,
-      branchName: matchedAccount.branchName,
-      isActive: true,
-    };
-
-    return {
-      success: true,
-      token,
-      user,
-    };
   },
 
-  /**
-   * Re-validates active status on app startup to enforce immediate deactivation.
-   */
   validateStoredSession: async (userId: string): Promise<AuthUser | null> => {
-    await mockDelay(200);
-
-    const credential = MOCK_CASHIER_CREDENTIALS.find((c) => c.id === userId);
-
-    if (!credential || !credential.isActive) {
+    try {
+      const response = await api.get('/auth/me');
+      const user = response.data.data;
+      if (!user || !user.isActive) return null;
+      return mapBackendUserToAuthUser(user);
+    } catch {
       return null;
     }
-
-    return {
-      id: credential.id,
-      cashierName: credential.cashierName,
-      name: credential.cashierName,
-      mobileNumber: credential.mobileNumber,
-      employeeId: credential.employeeId,
-      role: 'CASHIER',
-      storeId: credential.storeId,
-      storeName: credential.storeName,
-      branchName: credential.branchName,
-      isActive: true,
-    };
   },
 };

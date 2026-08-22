@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, ActivityIndicator } from 'react-native';
 import { useSettingsStore } from '@/stores/useSettingsStore';
 import { useAuthStore } from '@/stores/useAuthStore';
+import { useOrderStore } from '@/stores/useOrderStore';
+import { socketService } from '@/services/socket';
 import { COLORS } from '@/theme/theme';
 import { POSLayout } from '@/components/layout/POSLayout';
 import { DashboardScreen } from '@/screens/DashboardScreen';
@@ -18,7 +20,7 @@ export default function App() {
   const themeMode = useSettingsStore((state) => state.themeMode);
   const colors = COLORS[themeMode];
 
-  const { isAuthenticated, checkAuthSession } = useAuthStore();
+  const { isAuthenticated, token, checkAuthSession } = useAuthStore();
   const [sessionChecking, setSessionChecking] = useState(true);
 
   // Check stored session on startup
@@ -29,6 +31,18 @@ export default function App() {
     };
     initAuth();
   }, [checkAuthSession]);
+
+  // Synchronize REST orders and WebSocket connectivity
+  useEffect(() => {
+    if (isAuthenticated && token) {
+      // Connect to Socket.IO room with user's JWT token
+      socketService.connect(token, triggerToast);
+      // Fetch initial active orders
+      useOrderStore.getState().fetchOrders();
+    } else {
+      socketService.disconnect();
+    }
+  }, [isAuthenticated, token]);
 
   // Simple state router
   const [currentRoute, setCurrentRoute] = useState<string>('dashboard');
