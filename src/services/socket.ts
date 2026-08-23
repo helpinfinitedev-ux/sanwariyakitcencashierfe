@@ -1,7 +1,25 @@
 import { io, Socket } from 'socket.io-client';
+import { Audio } from 'expo-av';
 import { useOrderStore } from '@/stores/useOrderStore';
 
 let socket: Socket | null = null;
+
+// Plays a short chime when a new KOT lands in the pending-approval queue.
+async function playPendingChime() {
+  try {
+    const { sound } = await Audio.Sound.createAsync(
+      { uri: 'https://assets.mixkit.co/active_storage/sfx/2869/2869-600.wav' },
+      { shouldPlay: true }
+    );
+    sound.setOnPlaybackStatusUpdate((status) => {
+      if (status.isLoaded && status.didJustFinish) {
+        sound.unloadAsync().catch(() => {});
+      }
+    });
+  } catch (error) {
+    console.warn('Cashier chime failed:', error);
+  }
+}
 
 // Determine central backend socket host
 const getSocketUrl = () => {
@@ -61,6 +79,7 @@ export const socketService = {
         useOrderStore.getState().fetchOrders();
 
         if (event === 'order:pendingApproval') {
+          playPendingChime();
           if (showToastMessage) {
             showToastMessage(`New KOT pending approval for Table ${payload.tableNo || ''}`, 'info');
           }
