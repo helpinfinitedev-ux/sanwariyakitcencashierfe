@@ -3,6 +3,10 @@ import { View, StyleSheet, ActivityIndicator } from 'react-native';
 import { useSettingsStore } from '@/stores/useSettingsStore';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { useOrderStore } from '@/stores/useOrderStore';
+import { useMenuStore } from '@/stores/useMenuStore';
+import { useFloorStore } from '@/stores/useFloorStore';
+import { useCustomerStore } from '@/stores/useCustomerStore';
+import { useReportStore } from '@/stores/useReportStore';
 import { socketService } from '@/services/socket';
 import { COLORS } from '@/theme/theme';
 import { POSLayout } from '@/components/layout/POSLayout';
@@ -37,8 +41,12 @@ export default function App() {
     if (isAuthenticated && token) {
       // Connect to Socket.IO room with user's JWT token
       socketService.connect(token, triggerToast);
-      // Fetch initial active orders
+      // Fetch initial live data from the backend
       useOrderStore.getState().fetchOrders();
+      useMenuStore.getState().fetchMenu();
+      useFloorStore.getState().fetchTables();
+      useCustomerStore.getState().fetchCustomers();
+      useReportStore.getState().fetchReport();
     } else {
       socketService.disconnect();
     }

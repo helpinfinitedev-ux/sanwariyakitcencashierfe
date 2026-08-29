@@ -1,6 +1,9 @@
 import { io, Socket } from 'socket.io-client';
 import { Audio } from 'expo-av';
 import { useOrderStore } from '@/stores/useOrderStore';
+import { useFloorStore } from '@/stores/useFloorStore';
+import { useMenuStore } from '@/stores/useMenuStore';
+import { useReportStore } from '@/stores/useReportStore';
 
 let socket: Socket | null = null;
 
@@ -71,12 +74,29 @@ export const socketService = {
       'order:cancelled',
     ];
 
+    // Floor occupancy sync — any table change refreshes the floor map.
+    ['table:updated', 'table:created', 'table:removed'].forEach((event) => {
+      socket?.on(event, () => {
+        useFloorStore.getState().fetchTables();
+      });
+    });
+
+    // Menu changes (admin edits) refresh the product grid.
+    socket.on('menu:updated', () => {
+      useMenuStore.getState().fetchMenu();
+    });
+
     events.forEach((event) => {
       socket?.on(event, (payload: any) => {
         console.log(`Cashier POS WebSocket received: ${event}`, payload);
-        
+
         // Refresh store orders list
         useOrderStore.getState().fetchOrders();
+
+        // Completed bills change today's totals — refresh the dashboard/report.
+        if (event === 'order:completed') {
+          useReportStore.getState().fetchReport();
+        }
 
         if (event === 'order:pendingApproval') {
           playPendingChime();

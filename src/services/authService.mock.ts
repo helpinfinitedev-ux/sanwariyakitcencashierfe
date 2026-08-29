@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { storage } from './storage';
 
 export interface AuthUser {
   id: string;
@@ -31,15 +32,13 @@ const STORAGE_SESSION_KEY = 'sanwariya_pos_cashier_session';
 
 const getStoredToken = (): string | null => {
   try {
-    if (typeof window !== 'undefined' && window.localStorage) {
-      const raw = window.localStorage.getItem(STORAGE_SESSION_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        return parsed.token || null;
-      }
+    const raw = storage.getItem(STORAGE_SESSION_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      return parsed.token || null;
     }
   } catch {
-    // Ignore localStorage errors
+    // Ignore storage errors
   }
   return null;
 };
@@ -48,7 +47,7 @@ const getStoredToken = (): string | null => {
 const getApiUrl = () => {
   const envUrl = process.env.EXPO_PUBLIC_API_URL;
   if (!envUrl || envUrl === 'mock_api_url') {
-    return 'http://localhost:5000/api';
+    return 'http://localhost:4000/api';
   }
   return envUrl.endsWith('/api') ? envUrl : `${envUrl}/api`;
 };

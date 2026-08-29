@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { authService, AuthUser } from '@/services/authService.mock';
+import { storage } from '@/services/storage';
 import { useActivityLogStore } from './useActivityLogStore';
 
 const STORAGE_SESSION_KEY = 'sanwariya_pos_cashier_session';
@@ -11,10 +12,8 @@ interface StoredSession {
 
 const getStoredSession = (): StoredSession | null => {
   try {
-    if (typeof window !== 'undefined' && window.localStorage) {
-      const raw = window.localStorage.getItem(STORAGE_SESSION_KEY);
-      if (raw) return JSON.parse(raw);
-    }
+    const raw = storage.getItem(STORAGE_SESSION_KEY);
+    if (raw) return JSON.parse(raw);
   } catch {
     // Ignore storage parse errors
   }
@@ -23,12 +22,10 @@ const getStoredSession = (): StoredSession | null => {
 
 const saveStoredSession = (session: StoredSession | null) => {
   try {
-    if (typeof window !== 'undefined' && window.localStorage) {
-      if (session) {
-        window.localStorage.setItem(STORAGE_SESSION_KEY, JSON.stringify(session));
-      } else {
-        window.localStorage.removeItem(STORAGE_SESSION_KEY);
-      }
+    if (session) {
+      storage.setItem(STORAGE_SESSION_KEY, JSON.stringify(session));
+    } else {
+      storage.removeItem(STORAGE_SESSION_KEY);
     }
   } catch {
     // Ignore storage write errors
