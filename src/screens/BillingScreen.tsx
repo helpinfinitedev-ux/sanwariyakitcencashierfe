@@ -191,9 +191,15 @@ export const BillingScreen: React.FC<BillingScreenProps> = ({ onNavigate, showTo
     // Update sales metrics in store
     addOrderToReport(finalOrder);
 
-    // Free the table
+    // Free the table. `selectedTableId` holds the table *number* (orders track
+    // tables by number), so resolve the real floor-table id before clearing.
     if (selectedTableId) {
-      updateTableStatus(selectedTableId, 'available');
+      const floorTable = useFloorStore
+        .getState()
+        .tables.find((t) => t.id === selectedTableId || t.tableNo === selectedTableId);
+      if (floorTable) {
+        updateTableStatus(floorTable.id, 'available');
+      }
     }
 
     // Clear cart and show post-payment settlement modal
@@ -758,7 +764,7 @@ export const BillingScreen: React.FC<BillingScreenProps> = ({ onNavigate, showTo
       </View>
 
       {/* Large UPI QR Modal */}
-      <Modal transparent visible={upiQrVisible} animationType="fade">
+      <Modal supportedOrientations={['portrait', 'portrait-upside-down', 'landscape', 'landscape-left', 'landscape-right']} transparent visible={upiQrVisible} animationType="fade">
         <View style={[styles.qrOverlay, { backgroundColor: colors.overlay }]}>
           <View
             style={[
@@ -800,7 +806,7 @@ export const BillingScreen: React.FC<BillingScreenProps> = ({ onNavigate, showTo
       </Modal>
 
       {/* Post-Payment Settlement Success Modal */}
-      <Modal transparent visible={successModalVisible} animationType="fade">
+      <Modal supportedOrientations={['portrait', 'portrait-upside-down', 'landscape', 'landscape-left', 'landscape-right']} transparent visible={successModalVisible} animationType="fade">
         <View style={[styles.qrOverlay, { backgroundColor: colors.overlay }]}>
           <View
             style={[

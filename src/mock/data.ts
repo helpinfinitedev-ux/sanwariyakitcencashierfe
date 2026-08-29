@@ -22,6 +22,8 @@ export interface Table {
   capacity: number;
   currentOrderId?: string;
   waiterId?: string;
+  // Human-facing table number (used to reconcile orders <-> floor tables).
+  tableNo?: string;
   // Positioning coordinates for visual interactive floor layout (15" to 22" screens)
   x: number;
   y: number;

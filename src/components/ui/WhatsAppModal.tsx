@@ -103,7 +103,7 @@ export const WhatsAppModal: React.FC<WhatsAppModalProps> = ({
   };
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+    <Modal supportedOrientations={['portrait', 'portrait-upside-down', 'landscape', 'landscape-left', 'landscape-right']} visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={[styles.overlay, { backgroundColor: colors.overlay }]}>
         <View
           style={[

@@ -185,32 +185,8 @@ export const RightPanel: React.FC<RightPanelProps> = ({
       {/* Header Info */}
       <View style={[styles.section, styles.headerSection, { borderBottomColor: colors.border }]}>
         <View style={styles.orderTypeRow}>
-          <TouchableOpacity
-            onPress={() => setOrderType('dine-in')}
-            style={[
-              styles.typeTab,
-              { borderColor: colors.border },
-              orderType === 'dine-in' && {
-                backgroundColor: colors.primary,
-                borderColor: colors.primary,
-              },
-            ]}
-          >
-            <MaterialCommunityIcons
-              name="table-chair"
-              size={16}
-              color={orderType === 'dine-in' ? '#FFF' : colors.textPrimary}
-            />
-            <Text
-              style={[
-                styles.typeLabel,
-                { color: orderType === 'dine-in' ? '#FFF' : colors.textPrimary },
-              ]}
-            >
-              Dine In
-            </Text>
-          </TouchableOpacity>
-
+          {/* Dine-in ordering is handled by the waiter app; the cashier POS
+              only takes walk-in takeaway orders here. */}
           <TouchableOpacity
             onPress={() => setOrderType('takeaway')}
             style={[
@@ -473,7 +449,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
       />
 
       {/* Item Notes input modal overlay */}
-      <Modal transparent visible={itemNotesModalVisible} animationType="fade">
+      <Modal supportedOrientations={['portrait', 'portrait-upside-down', 'landscape', 'landscape-left', 'landscape-right']} transparent visible={itemNotesModalVisible} animationType="fade">
         <View style={[styles.overlay, { backgroundColor: colors.overlay }]}>
           <View
             style={[
@@ -526,7 +502,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
       </Modal>
 
       {/* Customer Quick Select Modal */}
-      <Modal transparent visible={customerModalVisible} animationType="fade">
+      <Modal supportedOrientations={['portrait', 'portrait-upside-down', 'landscape', 'landscape-left', 'landscape-right']} transparent visible={customerModalVisible} animationType="fade">
         <View style={[styles.overlay, { backgroundColor: colors.overlay }]}>
           <View
             style={[

@@ -207,7 +207,7 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({ onNavigate, showToas
       )}
 
       {/* Order Details Sliding Overlay */}
-      <Modal transparent visible={detailModalVisible} animationType="slide">
+      <Modal supportedOrientations={['portrait', 'portrait-upside-down', 'landscape', 'landscape-left', 'landscape-right']} transparent visible={detailModalVisible} animationType="slide">
         <View style={[styles.overlay, { backgroundColor: colors.overlay }]}>
           <View
             style={[

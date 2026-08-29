@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, ActivityIndicator } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useSettingsStore } from '@/stores/useSettingsStore';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { useOrderStore } from '@/stores/useOrderStore';
@@ -19,6 +20,7 @@ import { SettingsScreen } from '@/screens/SettingsScreen';
 import { ReportsScreen } from '@/screens/ReportsScreen';
 import { LoginScreen } from '@/screens/LoginScreen';
 import { Toast } from '@/components/ui/Dialog';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 export default function App() {
   const themeMode = useSettingsStore((state) => state.themeMode);
@@ -98,30 +100,34 @@ export default function App() {
   };
 
   return (
-    <View style={[styles.appContainer, { backgroundColor: colors.background }]}>
-      {/* Dynamic Toast popup notifier */}
-      <Toast
-        visible={toastVisible}
-        message={toastMessage}
-        type={toastType}
-        onDismiss={() => setToastVisible(false)}
-      />
+    <SafeAreaProvider>
+      <View style={[styles.appContainer, { backgroundColor: colors.background }]}>
+        {/* Dynamic Toast popup notifier */}
+        <Toast
+          visible={toastVisible}
+          message={toastMessage}
+          type={toastType}
+          onDismiss={() => setToastVisible(false)}
+        />
 
-      {!isAuthenticated ? (
-        <LoginScreen />
-      ) : (
-        <POSLayout
-          currentRoute={currentRoute}
-          onNavigate={setCurrentRoute}
-          showRightPanel={currentRoute === 'menu'} // show cart only on Menu Screen
-          onNavigateToBilling={() => setCurrentRoute('billing')}
-          onNavigateToFloor={() => setCurrentRoute('floor')}
-          showToastMessage={triggerToast}
-        >
-          {renderScreen()}
-        </POSLayout>
-      )}
-    </View>
+        {!isAuthenticated ? (
+          <LoginScreen />
+        ) : (
+          <ErrorBoundary>
+            <POSLayout
+              currentRoute={currentRoute}
+              onNavigate={setCurrentRoute}
+              showRightPanel={currentRoute === 'menu'} // show cart only on Menu Screen
+              onNavigateToBilling={() => setCurrentRoute('billing')}
+              onNavigateToFloor={() => setCurrentRoute('floor')}
+              showToastMessage={triggerToast}
+            >
+              {renderScreen()}
+            </POSLayout>
+          </ErrorBoundary>
+        )}
+      </View>
+    </SafeAreaProvider>
   );
 }
 

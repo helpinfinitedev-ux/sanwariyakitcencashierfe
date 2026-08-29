@@ -108,6 +108,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   checkAuthSession: async () => {
+    // Load persisted values into the synchronous cache before reading them
+    // (and before the axios interceptor needs the token).
+    await storage.hydrate();
     const session = getStoredSession();
 
     if (!session || !session.userId) {

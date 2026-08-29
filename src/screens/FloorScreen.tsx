@@ -235,7 +235,7 @@ export const FloorScreen: React.FC<FloorScreenProps> = ({ onNavigate, showToastM
       </View>
 
       {/* Waiter Selection Modal */}
-      <Modal transparent visible={waiterModalVisible} animationType="fade">
+      <Modal supportedOrientations={['portrait', 'portrait-upside-down', 'landscape', 'landscape-left', 'landscape-right']} transparent visible={waiterModalVisible} animationType="fade">
         <View style={[styles.overlay, { backgroundColor: colors.overlay }]}>
           <View
             style={[

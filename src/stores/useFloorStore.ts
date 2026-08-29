@@ -32,6 +32,7 @@ const mapBackendTable = (t: any, indexInSection: number): Table => {
   return {
     id: t._id || t.id,
     name: t.label || `Table ${t.tableNo}`,
+    tableNo: t.tableNo != null ? String(t.tableNo) : undefined,
     floorId: t.section || 'Main',
     status: mapBackendStatus(t.status),
     capacity: t.capacity || 4,

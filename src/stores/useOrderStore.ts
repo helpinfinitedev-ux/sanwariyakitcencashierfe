@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Order, OrderStatus, OrderItem, Product, AddonApprovalStatus } from '@/mock/data';
+import { Order, OrderStatus, OrderItem, AddonApprovalStatus } from '@/mock/data';
 import { useActivityLogStore } from './useActivityLogStore';
 import { useCartStore } from './useCartStore';
 import { api } from '@/services/authService.mock';
@@ -27,25 +27,28 @@ const mapBackendStatusToPosStatus = (status: string): OrderStatus => {
   }
 };
 
-const mapBackendProductToPosProduct = (product: any): Product => {
-  const pId = typeof product === 'object' && product ? (product._id || product.id) : String(product);
+const mapBackendOrderItemToPosOrderItem = (item: any): OrderItem => {
+  // `item.product` is usually just an ObjectId (the /orders list doesn't
+  // populate products). The order item carries snapshot `name`/`price` taken
+  // at add-time, so those are the source of truth for display.
+  const populated = typeof item.product === 'object' && item.product ? item.product : null;
+  const productId = populated ? populated._id || populated.id : item.product;
+
   return {
-    id: pId || '',
-    categoryId: product?.category || 'uncategorized',
-    name: product?.name || 'Sweet Box',
-    price: product?.price || 0,
-    description: product?.description || '',
-    isVeg: product?.foodType === 'veg',
-    isAvailable: product?.isAvailable ?? true,
-    image: product?.imageUrl || undefined,
+    product: {
+      id: productId || '',
+      categoryId: populated?.category || 'uncategorized',
+      name: item.name || populated?.name || 'Item',
+      price: item.price ?? populated?.price ?? 0,
+      description: populated?.description || '',
+      isVeg: populated?.foodType === 'veg',
+      isAvailable: populated?.isAvailable ?? true,
+      image: populated?.imageUrl || undefined,
+    },
+    quantity: item.quantity || 1,
+    notes: item.notes || '',
   };
 };
-
-const mapBackendOrderItemToPosOrderItem = (item: any): OrderItem => ({
-  product: mapBackendProductToPosProduct(item.product),
-  quantity: item.quantity || 1,
-  notes: item.notes || '',
-});
 
 const mapBackendOrderToPosOrder = (order: any): Order => {
   const waiterName = order.waiter?.name || 'Waiter';

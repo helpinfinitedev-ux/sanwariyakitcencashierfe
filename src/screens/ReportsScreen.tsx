@@ -713,7 +713,7 @@ export const ReportsScreen: React.FC = () => {
       )}
 
       {/* JSON Sync / Export Preview Modal */}
-      <Modal visible={exportModalVisible} transparent animationType="fade">
+      <Modal supportedOrientations={['portrait', 'portrait-upside-down', 'landscape', 'landscape-left', 'landscape-right']} visible={exportModalVisible} transparent animationType="fade">
         <View style={[styles.modalOverlay, { backgroundColor: colors.overlay }]}>
           <View
             style={[

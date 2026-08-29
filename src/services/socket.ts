@@ -1,5 +1,5 @@
 import { io, Socket } from 'socket.io-client';
-import { Audio } from 'expo-av';
+import { createAudioPlayer } from 'expo-audio';
 import { useOrderStore } from '@/stores/useOrderStore';
 import { useFloorStore } from '@/stores/useFloorStore';
 import { useMenuStore } from '@/stores/useMenuStore';
@@ -8,15 +8,16 @@ import { useReportStore } from '@/stores/useReportStore';
 let socket: Socket | null = null;
 
 // Plays a short chime when a new KOT lands in the pending-approval queue.
-async function playPendingChime() {
+function playPendingChime() {
   try {
-    const { sound } = await Audio.Sound.createAsync(
-      { uri: 'https://assets.mixkit.co/active_storage/sfx/2869/2869-600.wav' },
-      { shouldPlay: true }
-    );
-    sound.setOnPlaybackStatusUpdate((status) => {
-      if (status.isLoaded && status.didJustFinish) {
-        sound.unloadAsync().catch(() => {});
+    const player = createAudioPlayer({
+      uri: 'https://assets.mixkit.co/active_storage/sfx/2869/2869-600.wav',
+    });
+    player.play();
+    // Release native resources once playback finishes.
+    player.addListener('playbackStatusUpdate', (status) => {
+      if (status.didJustFinish) {
+        player.remove();
       }
     });
   } catch (error) {
@@ -86,6 +87,17 @@ export const socketService = {
       useMenuStore.getState().fetchMenu();
     });
 
+    // Add-on placed on an existing table's order: the SAME order's total grows
+    // in place — no new order row, no re-approval. The cashier is just notified.
+    socket.on('order:addon', (payload: any) => {
+      useOrderStore.getState().fetchOrders();
+      playPendingChime();
+      if (showToastMessage) {
+        const total = typeof payload?.totalPrice === 'number' ? ` — new total ₹${payload.totalPrice}` : '';
+        showToastMessage(`Add-on added to Table ${payload?.tableNo || ''}${total}`, 'info');
+      }
+    });
+
     events.forEach((event) => {
       socket?.on(event, (payload: any) => {
         console.log(`Cashier POS WebSocket received: ${event}`, payload);
@@ -103,9 +115,22 @@ export const socketService = {
           if (showToastMessage) {
             showToastMessage(`New KOT pending approval for Table ${payload.tableNo || ''}`, 'info');
           }
+        } else if (event === 'order:updated') {
+          // A waiter edited an existing order — notify the cashier.
+          playPendingChime();
+          if (showToastMessage) {
+            const total = typeof payload?.totalPrice === 'number' ? ` — new total ₹${payload.totalPrice}` : '';
+            showToastMessage(`Order for Table ${payload?.tableNo || ''} was edited${total}`, 'info');
+          }
         } else if (event === 'order:readyToServe') {
           if (showToastMessage) {
             showToastMessage(`Table ${payload.tableNo || ''} order is READY!`, 'success');
+          }
+        } else if (event === 'order:served') {
+          // Waiter has served the table — it's now ready for billing.
+          playPendingChime();
+          if (showToastMessage) {
+            showToastMessage(`Ready to bill - Table ${payload.tableNo || ''}`, 'info');
           }
         }
       });

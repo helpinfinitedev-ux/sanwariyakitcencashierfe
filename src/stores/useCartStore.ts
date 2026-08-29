@@ -53,7 +53,7 @@ export const useCartStore = create<CartState>((set, get) => ({
   selectedCustomerPhone: undefined,
   discount: 0,
   discountIsPercent: false,
-  orderType: 'dine-in',
+  orderType: 'takeaway',
   editingOrderId: undefined,
 
   addToCart: (product, quantity = 1, notes) => {

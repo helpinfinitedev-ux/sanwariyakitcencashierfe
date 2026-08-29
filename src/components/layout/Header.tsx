@@ -385,6 +385,7 @@ export const Header: React.FC<HeaderProps> = ({ showToastMessage }) => {
 
       {/* Right-Side Notification Drawer Modal */}
       <Modal
+        supportedOrientations={['portrait', 'portrait-upside-down', 'landscape', 'landscape-left', 'landscape-right']}
         transparent
         visible={showNotifications}
         onRequestClose={() => setShowNotifications(false)}
@@ -682,6 +683,7 @@ export const Header: React.FC<HeaderProps> = ({ showToastMessage }) => {
 
       {/* Reject Confirmation Dialog */}
       <Modal
+        supportedOrientations={['portrait', 'portrait-upside-down', 'landscape', 'landscape-left', 'landscape-right']}
         transparent
         visible={rejectDialogVisible}
         onRequestClose={() => {

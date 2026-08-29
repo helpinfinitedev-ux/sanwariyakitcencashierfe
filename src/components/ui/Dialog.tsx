@@ -58,7 +58,7 @@ export const Dialog: React.FC<DialogProps> = ({
   const iconInfo = getHeaderIcon();
 
   return (
-    <Modal transparent visible={visible} animationType="fade" onRequestClose={onCancel}>
+    <Modal supportedOrientations={['portrait', 'portrait-upside-down', 'landscape', 'landscape-left', 'landscape-right']} transparent visible={visible} animationType="fade" onRequestClose={onCancel}>
       <View style={[styles.overlay, { backgroundColor: colors.overlay }]}>
         <TouchableWithoutFeedback onPress={isAlertOnly ? onConfirm : onCancel}>
           <View style={StyleSheet.absoluteFill} />
@@ -163,7 +163,7 @@ export const NumberPadModal: React.FC<NumberPadModalProps> = ({
   const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '.', 'C'];
 
   return (
-    <Modal transparent visible={visible} animationType="slide" onRequestClose={onCancel}>
+    <Modal supportedOrientations={['portrait', 'portrait-upside-down', 'landscape', 'landscape-left', 'landscape-right']} transparent visible={visible} animationType="slide" onRequestClose={onCancel}>
       <View style={[styles.overlay, { backgroundColor: colors.overlay }]}>
         <TouchableWithoutFeedback onPress={onCancel}>
           <View style={StyleSheet.absoluteFill} />
