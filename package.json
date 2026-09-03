@@ -1,47 +1,32 @@
 {
   "name": "cashier-touch-pos",
   "version": "1.0.0",
-  "main": "index.ts",
+  "description": "Sanwariya Kitchen cashier POS web application",
+  "type": "module",
   "dependencies": {
-    "@expo/vector-icons": "^15.0.3",
-    "@gorhom/bottom-sheet": "^5.2.14",
-    "@react-native-async-storage/async-storage": "2.2.0",
-    "@react-navigation/drawer": "^7.12.8",
-    "@react-navigation/native": "^7.3.8",
-    "@react-navigation/native-stack": "^7.17.10",
-    "@shopify/flash-list": "2.0.2",
-    "@tanstack/react-query": "^5.101.2",
+    "@mdi/js": "^7.4.47",
     "axios": "^1.13.4",
-    "expo": "~54.0.34",
-    "expo-audio": "~1.1.1",
-    "expo-status-bar": "~3.0.9",
     "react": "19.1.0",
     "react-dom": "19.1.0",
-    "react-native": "0.81.5",
-    "react-native-gesture-handler": "~2.28.0",
-    "react-native-reanimated": "~4.1.1",
-    "react-native-safe-area-context": "~5.6.0",
-    "react-native-screens": "~4.16.0",
-    "react-native-svg": "15.15.4",
     "react-native-web": "^0.21.0",
-    "react-native-worklets": "0.5.1",
     "socket.io-client": "^4.7.5",
     "zustand": "^5.0.14"
   },
   "devDependencies": {
+    "@types/node": "^24.0.0",
     "@types/react": "~19.1.0",
-    "eslint": "^8.57.0",
-    "eslint-config-expo": "~10.0.0",
-    "eslint-config-prettier": "^10.1.8",
-    "eslint-plugin-prettier": "^5.5.6",
+    "@types/react-dom": "~19.1.0",
+    "@vitejs/plugin-react": "^6.1.1",
     "prettier": "^3.9.5",
-    "typescript": "~6.0.3"
+    "typescript": "~6.0.3",
+    "vite": "^8.2.2"
   },
   "scripts": {
-    "start": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
-    "web": "expo start --web"
+    "start": "vite",
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit"
   },
   "private": true
 }

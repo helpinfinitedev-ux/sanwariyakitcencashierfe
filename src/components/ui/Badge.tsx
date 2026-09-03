@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, ViewStyle, TextStyle } from 'react-native';
+import { View, Text, StyleSheet, ViewStyle, TextStyle } from 'react-native-web';
 import { COLORS, TYPOGRAPHY, SPACING, RADIUS } from '@/theme/theme';
 import { useSettingsStore } from '@/stores/useSettingsStore';
 import { TableStatus, OrderStatus } from '@/mock/data';

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
+import { Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native-web';
 
 interface Props {
   children: React.ReactNode;

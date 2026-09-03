@@ -6,13 +6,14 @@ import {
   ScrollView,
   TouchableOpacity,
   useWindowDimensions,
-} from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+} from 'react-native-web';
+import { MaterialCommunityIcons } from '@/components/ui/MaterialCommunityIcons';
 import { COLORS, TYPOGRAPHY, SPACING, RADIUS, BREAKPOINTS } from '@/theme/theme';
 import { useSettingsStore } from '@/stores/useSettingsStore';
 import { useReportStore } from '@/stores/useReportStore';
 import { useFloorStore } from '@/stores/useFloorStore';
 import { useOrderStore } from '@/stores/useOrderStore';
+import { useCartStore } from '@/stores/useCartStore';
 import { SummaryCard } from '@/components/ui/Card';
 import { formatCurrency } from '@/utils/formatters';
 
@@ -164,10 +165,8 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigate }) 
           icon="bag-checked"
           onPress={() => {
             // Clear cart & switch to takeaway
-            import('@/stores/useCartStore').then((store) => {
-              store.useCartStore.getState().clearCart();
-              store.useCartStore.getState().setOrderType('takeaway');
-            });
+            useCartStore.getState().clearCart();
+            useCartStore.getState().setOrderType('takeaway');
             onNavigate('menu');
           }}
           colors={colors}

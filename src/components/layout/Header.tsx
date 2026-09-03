@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Modal, ScrollView, TextInput } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { View, Text, StyleSheet, TouchableOpacity, Modal, ScrollView, TextInput } from 'react-native-web';
+import { MaterialCommunityIcons } from '@/components/ui/MaterialCommunityIcons';
 import { COLORS, TYPOGRAPHY, SPACING, RADIUS } from '@/theme/theme';
 import { useSettingsStore } from '@/stores/useSettingsStore';
 import { useAuthStore } from '@/stores/useAuthStore';
@@ -882,11 +882,7 @@ const styles = StyleSheet.create({
   drawerContainer: {
     width: 450,
     height: '100%',
-    shadowColor: '#000',
-    shadowOffset: { width: -4, height: 0 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 20,
+    boxShadow: '-4px 0 12px rgba(0, 0, 0, 0.15)',
     borderLeftWidth: 1,
   },
   drawerHeader: {
@@ -1114,11 +1110,7 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.md,
     borderWidth: 1,
     padding: SPACING.lg,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 10,
-    elevation: 20,
+    boxShadow: '0 4px 10px rgba(0, 0, 0, 0.15)',
   },
   dialogTitle: {
     fontSize: TYPOGRAPHY.sizes.md,

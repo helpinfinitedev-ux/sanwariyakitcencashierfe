@@ -1,5 +1,4 @@
 import { io, Socket } from 'socket.io-client';
-import { createAudioPlayer } from 'expo-audio';
 import { useOrderStore } from '@/stores/useOrderStore';
 import { useFloorStore } from '@/stores/useFloorStore';
 import { useMenuStore } from '@/stores/useMenuStore';
@@ -10,16 +9,9 @@ let socket: Socket | null = null;
 // Plays a short chime when a new KOT lands in the pending-approval queue.
 function playPendingChime() {
   try {
-    const player = createAudioPlayer({
-      uri: 'https://assets.mixkit.co/active_storage/sfx/2869/2869-600.wav',
-    });
-    player.play();
-    // Release native resources once playback finishes.
-    player.addListener('playbackStatusUpdate', (status) => {
-      if (status.didJustFinish) {
-        player.remove();
-      }
-    });
+    const player = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-600.wav');
+    player.volume = 0.7;
+    void player.play();
   } catch (error) {
     console.warn('Cashier chime failed:', error);
   }
@@ -27,16 +19,19 @@ function playPendingChime() {
 
 // Determine central backend socket host
 const getSocketUrl = () => {
-  const envUrl = process.env.EXPO_PUBLIC_API_URL;
+  const envUrl = import.meta.env.VITE_API_URL || import.meta.env.EXPO_PUBLIC_API_URL;
   if (!envUrl || envUrl === 'mock_api_url') {
-    return 'http://localhost:5000';
+    return 'http://localhost:4000';
   }
   // Strip trailing '/api' from connection URL if present
   return envUrl.endsWith('/api') ? envUrl.slice(0, -4) : envUrl;
 };
 
 export const socketService = {
-  connect: (token: string, showToastMessage?: (msg: string, type: 'success' | 'error' | 'info') => void) => {
+  connect: (
+    token: string,
+    showToastMessage?: (msg: string, type: 'success' | 'error' | 'info') => void,
+  ) => {
     if (socket) {
       socket.disconnect();
     }
@@ -93,7 +88,8 @@ export const socketService = {
       useOrderStore.getState().fetchOrders();
       playPendingChime();
       if (showToastMessage) {
-        const total = typeof payload?.totalPrice === 'number' ? ` — new total ₹${payload.totalPrice}` : '';
+        const total =
+          typeof payload?.totalPrice === 'number' ? ` — new total ₹${payload.totalPrice}` : '';
         showToastMessage(`Add-on added to Table ${payload?.tableNo || ''}${total}`, 'info');
       }
     });
@@ -119,8 +115,12 @@ export const socketService = {
           // A waiter edited an existing order — notify the cashier.
           playPendingChime();
           if (showToastMessage) {
-            const total = typeof payload?.totalPrice === 'number' ? ` — new total ₹${payload.totalPrice}` : '';
-            showToastMessage(`Order for Table ${payload?.tableNo || ''} was edited${total}`, 'info');
+            const total =
+              typeof payload?.totalPrice === 'number' ? ` — new total ₹${payload.totalPrice}` : '';
+            showToastMessage(
+              `Order for Table ${payload?.tableNo || ''} was edited${total}`,
+              'info',
+            );
           }
         } else if (event === 'order:readyToServe') {
           if (showToastMessage) {

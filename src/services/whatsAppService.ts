@@ -1,4 +1,3 @@
-import { Linking, Platform } from 'react-native';
 import { Order, MOCK_RESTAURANT, Restaurant } from '@/mock/data';
 import { formatCurrency, formatDate, formatTime } from '@/utils/formatters';
 import { useActivityLogStore } from '@/stores/useActivityLogStore';
@@ -99,11 +98,9 @@ export const sendBillWhatsApp = async (
   const waUrl = `https://wa.me/${cleanPhone}?text=${encodedMessage}`;
 
   try {
-    const supported = await Linking.canOpenURL(waUrl);
+    const popup = window.open(waUrl, '_blank', 'noopener,noreferrer');
 
-    if (supported || Platform.OS === 'web') {
-      await Linking.openURL(waUrl);
-
+    if (popup) {
       // Log event in activity audit store
       useActivityLogStore.getState().logEvent({
         type: 'bill.sentWhatsApp',
@@ -129,9 +126,9 @@ export const sendBillWhatsApp = async (
       };
     }
   } catch (err: any) {
-    // Fallback: try direct openURL in case canOpenURL had strict Android 11+ package visibility restriction
+    // Fallback for browsers that initially deny a popup request.
     try {
-      await Linking.openURL(waUrl);
+      window.open(waUrl, '_blank', 'noopener,noreferrer');
       useActivityLogStore.getState().logEvent({
         type: 'bill.sentWhatsApp',
         orderId: order.id,

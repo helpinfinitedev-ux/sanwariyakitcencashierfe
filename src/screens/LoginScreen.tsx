@@ -7,8 +7,8 @@ import {
   ScrollView,
   useWindowDimensions,
   ActivityIndicator,
-} from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+} from 'react-native-web';
+import { MaterialCommunityIcons } from '@/components/ui/MaterialCommunityIcons';
 import { COLORS, TYPOGRAPHY, SPACING, RADIUS, SHADOWS, BREAKPOINTS } from '@/theme/theme';
 import { useSettingsStore } from '@/stores/useSettingsStore';
 import { useAuthStore } from '@/stores/useAuthStore';

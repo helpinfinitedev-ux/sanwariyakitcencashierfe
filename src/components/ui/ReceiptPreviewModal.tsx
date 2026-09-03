@@ -8,8 +8,8 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   useWindowDimensions,
-} from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+} from 'react-native-web';
+import { MaterialCommunityIcons } from '@/components/ui/MaterialCommunityIcons';
 import { COLORS, TYPOGRAPHY, SPACING, RADIUS, SHADOWS } from '@/theme/theme';
 import { useSettingsStore } from '@/stores/useSettingsStore';
 import { Order } from '@/mock/data';
@@ -337,11 +337,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.lg,
     borderRadius: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 6,
+    boxShadow: '0 4px 8px rgba(0, 0, 0, 0.25)',
   },
   paperTearTop: {
     height: 4,

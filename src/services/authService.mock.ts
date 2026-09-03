@@ -43,9 +43,9 @@ const getStoredToken = (): string | null => {
   return null;
 };
 
-// API Base URL config matching process.env
+// API Base URL config supplied by Vite at build time.
 const getApiUrl = () => {
-  const envUrl = process.env.EXPO_PUBLIC_API_URL;
+  const envUrl = import.meta.env.VITE_API_URL || import.meta.env.EXPO_PUBLIC_API_URL;
   if (!envUrl || envUrl === 'mock_api_url') {
     return 'http://localhost:4000/api';
   }

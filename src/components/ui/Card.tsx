@@ -1,6 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ViewStyle, StyleProp } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { View, Text, StyleSheet, TouchableOpacity, ViewStyle, StyleProp } from 'react-native-web';
+import { MaterialCommunityIcons } from '@/components/ui/MaterialCommunityIcons';
 import { COLORS, TYPOGRAPHY, SPACING, RADIUS, SHADOWS } from '@/theme/theme';
 import { useSettingsStore } from '@/stores/useSettingsStore';
 import { Table, Product, Order, Customer } from '@/mock/data';

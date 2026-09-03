@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Switch, TouchableOpacity } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { View, Text, StyleSheet, ScrollView, Switch, TouchableOpacity } from 'react-native-web';
+import { MaterialCommunityIcons } from '@/components/ui/MaterialCommunityIcons';
 import { COLORS, TYPOGRAPHY, SPACING, RADIUS } from '@/theme/theme';
 import { useSettingsStore } from '@/stores/useSettingsStore';
 import { useFloorStore } from '@/stores/useFloorStore';
@@ -410,4 +410,3 @@ const styles = StyleSheet.create({
     marginLeft: 6,
   },
 });
-

@@ -97,32 +97,16 @@ export const RADIUS = {
 
 export const SHADOWS = {
   sm: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.15,
-    shadowRadius: 2.0,
-    elevation: 2,
+    boxShadow: '0 1px 2px rgba(0, 0, 0, 0.15)',
   },
   md: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4.65,
-    elevation: 4,
+    boxShadow: '0 3px 5px rgba(0, 0, 0, 0.20)',
   },
   lg: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8.3,
-    elevation: 8,
+    boxShadow: '0 6px 9px rgba(0, 0, 0, 0.25)',
   },
   xl: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16.0,
-    elevation: 16,
+    boxShadow: '0 12px 18px rgba(0, 0, 0, 0.30)',
   },
 };
 

@@ -1,6 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, StatusBar } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { View, StyleSheet } from 'react-native-web';
 import { COLORS } from '@/theme/theme';
 import { useSettingsStore } from '@/stores/useSettingsStore';
 import { Sidebar } from './Sidebar';
@@ -30,11 +29,7 @@ export const POSLayout: React.FC<POSLayoutProps> = ({
   const colors = COLORS[themeMode];
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
-      <StatusBar
-        barStyle={themeMode === 'dark' ? 'light-content' : 'dark-content'}
-        backgroundColor={colors.surface}
-      />
+    <View style={[styles.safeArea, { backgroundColor: colors.background }]}>
       <View style={[styles.rootContainer, { backgroundColor: colors.background }]}>
         {/* Left Navigation Sidebar */}
         <Sidebar currentRoute={currentRoute} onNavigate={onNavigate} />
@@ -57,7 +52,7 @@ export const POSLayout: React.FC<POSLayoutProps> = ({
           </View>
         </View>
       </View>
-    </SafeAreaView>
+    </View>
   );
 };
 

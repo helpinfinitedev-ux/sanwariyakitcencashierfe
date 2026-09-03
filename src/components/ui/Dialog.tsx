@@ -6,8 +6,8 @@ import {
   StyleSheet,
   TouchableOpacity,
   TouchableWithoutFeedback,
-} from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+} from 'react-native-web';
+import { MaterialCommunityIcons } from '@/components/ui/MaterialCommunityIcons';
 import { COLORS, TYPOGRAPHY, SPACING, RADIUS, SHADOWS } from '@/theme/theme';
 import { useSettingsStore } from '@/stores/useSettingsStore';
 import { Button } from './Button';
