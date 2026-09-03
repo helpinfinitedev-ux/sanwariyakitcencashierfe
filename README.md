@@ -12,5 +12,3 @@ Socket.IO updates, and dark/light themes are preserved from the original applica
    `VITE_API_URL=http://localhost:4000/api`.
 4. Run `npm run dev` for development or `npm run build` for production.
 5. Serve the generated `dist` directory from any static web server.
-
-Existing terminal `.env` files using `EXPO_PUBLIC_API_URL` remain supported during migration.
