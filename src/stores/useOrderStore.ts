@@ -109,6 +109,7 @@ interface OrderState {
   error: string | null;
   fetchOrders: () => Promise<void>;
   addOrder: (order: Order) => void;
+  updateOrder: (orderId: string, patch: Partial<Order>) => void;
   updateOrderStatus: (orderId: string, status: OrderStatus, rejectionReason?: string) => Promise<void>;
   approveAddonOrder: (addonOrderId: string) => void;
   rejectAddonOrder: (addonOrderId: string, rejectionReason: string) => void;
@@ -160,6 +161,30 @@ export const useOrderStore = create<OrderState>((set, get) => ({
     set((state) => ({
       orders: [standardizedOrder, ...state.orders],
     }));
+  },
+
+  // Local edit of an existing order (items/totals/table/customer). Preserves
+  // the order's identity and status — used by the cashier "Edit Order" flow.
+  updateOrder: (orderId, patch) => {
+    set((state) => ({
+      orders: state.orders.map((o) => (o.id === orderId ? { ...o, ...patch } : o)),
+    }));
+
+    const updated = get().orders.find((o) => o.id === orderId);
+    if (updated) {
+      useActivityLogStore.getState().logEvent({
+        type: 'order.updated',
+        orderId: updated.id,
+        orderNumber: updated.orderNumber,
+        tableId: updated.tableId,
+        tableName: updated.tableName,
+        payload: {
+          itemsCount: updated.items.length,
+          subtotal: updated.subtotal,
+          total: updated.total,
+        },
+      });
+    }
   },
 
   updateOrderStatus: async (orderId, status, rejectionReason) => {

@@ -13,12 +13,10 @@ import { COLORS, TYPOGRAPHY, SPACING, RADIUS, SHADOWS } from '@/theme/theme';
 import { useSettingsStore } from '@/stores/useSettingsStore';
 import { useOrderStore } from '@/stores/useOrderStore';
 import { useCartStore } from '@/stores/useCartStore';
-import { useFloorStore } from '@/stores/useFloorStore';
 import { OrderCard } from '@/components/ui/Card';
 
 import { EmptyState } from '@/components/ui/Loading';
 import { Button } from '@/components/ui/Button';
-import { Dialog } from '@/components/ui/Dialog';
 import { formatCurrency, formatDate, formatTime } from '@/utils/formatters';
 import { Order } from '@/mock/data';
 import { ReceiptPreviewModal } from '@/components/ui/ReceiptPreviewModal';
@@ -34,8 +32,7 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({ onNavigate, showToas
   const colors = COLORS[themeMode];
 
   // Store variables
-  const { orders, cancelOrder } = useOrderStore();
-  const updateTableStatus = useFloorStore((state) => state.updateTableStatus);
+  const { orders } = useOrderStore();
   const loadOrderIntoCart = useCartStore((state) => state.loadOrderIntoCart);
 
   // Tab state
@@ -44,9 +41,6 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({ onNavigate, showToas
   // Detail Modal state
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
-
-  // Cancel Confirmation
-  const [cancelDialogVisible, setCancelDialogVisible] = useState(false);
 
   // Print & WhatsApp Modals
   const [receiptModalVisible, setReceiptModalVisible] = useState(false);
@@ -84,6 +78,17 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({ onNavigate, showToas
       loadOrderIntoCart(selectedOrder);
       setDetailModalVisible(false);
       onNavigate('billing');
+    }
+  };
+
+  const handleModifyKOT = () => {
+    if (selectedOrder) {
+      // Load the order into the cart (sets editingOrderId) and open the menu to
+      // edit items; saving there updates this same order via updateOrder.
+      loadOrderIntoCart(selectedOrder);
+      setDetailModalVisible(false);
+      showToastMessage(`Loaded order ${selectedOrder.orderNumber} for editing.`, 'info');
+      onNavigate('menu');
     }
   };
 
@@ -301,6 +306,13 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({ onNavigate, showToas
               <View style={[styles.modalActionsRow, { borderTopColor: colors.border }]}>
                  {selectedOrder.status !== 'completed' && selectedOrder.status !== 'cancelled' && selectedOrder.status !== 'rejected' ? (
                   <>
+                    <Button
+                      label="Edit Order"
+                      variant="secondary"
+                      icon="pencil"
+                      onPress={handleModifyKOT}
+                      style={styles.actionBtn}
+                    />
                     <Button
                       label="Collect & Checkout"
                       variant="primary"

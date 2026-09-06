@@ -63,7 +63,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
 
   // Stores for placing/paying orders
   const updateTableStatus = useFloorStore((state) => state.updateTableStatus);
-  const { addOrder, updateOrderStatus, orders } = useOrderStore();
+  const { addOrder, updateOrder, orders } = useOrderStore();
   const { customers } = useCustomerStore();
 
   // Calculations
@@ -123,7 +123,24 @@ export const RightPanel: React.FC<RightPanelProps> = ({
     };
 
     if (isEditing) {
-      updateOrderStatus(orderId, 'preparing');
+      // Persist the edited items/totals onto the existing order (keeps its id,
+      // number, status and timestamp) instead of creating a duplicate.
+      updateOrder(orderId, {
+        items: cartItems,
+        subtotal,
+        gst,
+        discount: discountAmount,
+        total,
+        tableId: selectedTableId,
+        tableName: selectedTableName,
+        tableNumber: selectedTableName,
+        floorName: selectedFloorName,
+        waiterId: selectedWaiterId,
+        waiterName: selectedWaiterName,
+        customerId: selectedCustomerId,
+        customerName: selectedCustomerName,
+        customerPhone: selectedCustomerPhone,
+      });
       showToastMessage(`KOT Updated: ${orderNumber}`);
     } else {
       addOrder(newOrder);

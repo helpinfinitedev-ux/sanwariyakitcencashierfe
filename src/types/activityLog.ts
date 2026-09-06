@@ -1,5 +1,6 @@
 export type ActivityEventType =
   | 'order.created'
+  | 'order.updated'
   | 'order.itemAdded'
   | 'order.cancelled'
   | 'payment.completed'
