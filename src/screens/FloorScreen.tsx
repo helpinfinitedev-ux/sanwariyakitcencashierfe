@@ -1,11 +1,9 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
-  ScrollView,
-  Modal,
   useWindowDimensions,
 } from 'react-native-web';
 import { MaterialCommunityIcons } from '@/components/ui/MaterialCommunityIcons';
@@ -14,8 +12,7 @@ import { useSettingsStore } from '@/stores/useSettingsStore';
 import { useFloorStore } from '@/stores/useFloorStore';
 import { useCartStore } from '@/stores/useCartStore';
 import { useOrderStore } from '@/stores/useOrderStore';
-import { MOCK_WAITERS, Table } from '@/mock/data';
-import { Button } from '@/components/ui/Button';
+import { Table } from '@/mock/data';
 import { formatCurrency } from '@/utils/formatters';
 
 interface FloorScreenProps {
@@ -33,17 +30,21 @@ export const FloorScreen: React.FC<FloorScreenProps> = ({ onNavigate, showToastM
 
   // Floor and Cart stores
   const { floors, tables, selectedFloorId, selectFloor, updateTableStatus } = useFloorStore();
-  const { selectTable, selectWaiter, clearCart, loadOrderIntoCart, selectedTableId } =
-    useCartStore();
+  const { selectTable, clearCart, loadOrderIntoCart, selectedTableId } = useCartStore();
   const { orders } = useOrderStore();
-
-  // Waiter Selection Dialog
-  const [waiterModalVisible, setWaiterModalVisible] = useState(false);
-  const [activeTableForWaiter, setActiveTableForWaiter] = useState<Table | null>(null);
 
   // Active Floor details
   const activeFloor = floors.find((f) => f.id === selectedFloorId);
   const activeTables = tables.filter((t) => t.floorId === selectedFloorId);
+
+  // Start a new order on a table directly, without the waiter-assignment modal.
+  const startOrderForTable = (table: Table) => {
+    clearCart();
+    selectTable(table.id, table.name, activeFloor?.id, activeFloor?.name);
+    updateTableStatus(table.id, 'occupied');
+    showToastMessage(`Order started for ${table.name}.`);
+    onNavigate('menu'); // Navigate to Product Menu to add items
+  };
 
   const handleTablePress = (table: Table) => {
     // If table is occupied or billing, load its active order immediately into the cart
@@ -58,42 +59,13 @@ export const FloorScreen: React.FC<FloorScreenProps> = ({ onNavigate, showToastM
         // Fallback: create cart session with table
         selectTable(table.id, table.name, activeFloor?.id, activeFloor?.name);
       }
-    } else if (table.status === 'available') {
-      // Open waiter selection modal to start a new order
-      setActiveTableForWaiter(table);
-      setWaiterModalVisible(true);
     } else if (table.status === 'cleaning') {
       // Reset table status to available
       updateTableStatus(table.id, 'available');
       showToastMessage(`${table.name} status updated to Available.`);
-    } else if (table.status === 'reserved') {
-      // Ask to occupy or free the table
-      setActiveTableForWaiter(table);
-      setWaiterModalVisible(true);
-    }
-  };
-
-  const selectWaiterAndStartOrder = (waiterId: string, waiterName: string) => {
-    if (activeTableForWaiter) {
-      // Clear previous cart
-      clearCart();
-      // Set table & waiter in cart store
-      selectTable(
-        activeTableForWaiter.id,
-        activeTableForWaiter.name,
-        activeFloor?.id,
-        activeFloor?.name,
-      );
-      selectWaiter(waiterId, waiterName);
-
-      // Update Table Status to occupied
-      updateTableStatus(activeTableForWaiter.id, 'occupied', undefined, waiterId);
-
-      setWaiterModalVisible(false);
-      setActiveTableForWaiter(null);
-
-      showToastMessage(`Order started for ${activeTableForWaiter.name} under ${waiterName}.`);
-      onNavigate('menu'); // Navigate to Product Menu to add items
+    } else {
+      // available or reserved — start a new order straight away
+      startOrderForTable(table);
     }
   };
 
@@ -233,79 +205,6 @@ export const FloorScreen: React.FC<FloorScreenProps> = ({ onNavigate, showToastM
           </View>
         )}
       </View>
-
-      {/* Waiter Selection Modal */}
-      <Modal supportedOrientations={['portrait', 'portrait-upside-down', 'landscape', 'landscape-left', 'landscape-right']} transparent visible={waiterModalVisible} animationType="fade">
-        <View style={[styles.overlay, { backgroundColor: colors.overlay }]}>
-          <View
-            style={[
-              styles.modalBox,
-              { backgroundColor: colors.surface, borderColor: colors.border },
-              SHADOWS.xl,
-            ]}
-          >
-            <View style={styles.modalHeader}>
-              <View>
-                <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>
-                  Assign Waiter
-                </Text>
-                <Text style={[styles.modalSub, { color: colors.textSecondary }]}>
-                  Select waiter for {activeTableForWaiter?.name}
-                </Text>
-              </View>
-              <TouchableOpacity onPress={() => setWaiterModalVisible(false)}>
-                <MaterialCommunityIcons name="close" size={24} color={colors.textPrimary} />
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView
-              style={styles.waitersScroll}
-              contentContainerStyle={styles.waitersScrollContent}
-            >
-              {MOCK_WAITERS.map((waiter) => (
-                <TouchableOpacity
-                  key={waiter.id}
-                  onPress={() => selectWaiterAndStartOrder(waiter.id, waiter.name)}
-                  activeOpacity={0.7}
-                  style={[
-                    styles.waiterCard,
-                    { backgroundColor: colors.surfaceLight, borderColor: colors.border },
-                  ]}
-                >
-                  <View style={[styles.waiterAvatar, { backgroundColor: colors.primary }]}>
-                    <Text style={styles.waiterAvatarText}>
-                      {waiter.name
-                        .split(' ')
-                        .map((n) => n[0])
-                        .join('')}
-                    </Text>
-                  </View>
-                  <View style={styles.waiterInfo}>
-                    <Text style={[styles.waiterName, { color: colors.textPrimary }]}>
-                      {waiter.name}
-                    </Text>
-                    <Text style={[styles.waiterCode, { color: colors.textMuted }]}>
-                      Code: {waiter.code}
-                    </Text>
-                  </View>
-                  <MaterialCommunityIcons
-                    name="chevron-right"
-                    size={20}
-                    color={colors.textSecondary}
-                  />
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-
-            <Button
-              label="Cancel"
-              variant="outline"
-              onPress={() => setWaiterModalVisible(false)}
-              style={styles.modalCancelBtn}
-            />
-          </View>
-        </View>
-      </Modal>
     </View>
   );
 };

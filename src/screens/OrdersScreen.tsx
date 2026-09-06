@@ -23,7 +23,6 @@ import { formatCurrency, formatDate, formatTime } from '@/utils/formatters';
 import { Order } from '@/mock/data';
 import { ReceiptPreviewModal } from '@/components/ui/ReceiptPreviewModal';
 import { WhatsAppModal } from '@/components/ui/WhatsAppModal';
-import { printKOT } from '@/services/printService';
 
 interface OrdersScreenProps {
   onNavigate: (route: string) => void;
@@ -65,43 +64,6 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({ onNavigate, showToas
   const handleOrderPress = (order: Order) => {
     setSelectedOrder(order);
     setDetailModalVisible(true);
-  };
-
-  const handleModifyKOT = () => {
-    if (selectedOrder) {
-      loadOrderIntoCart(selectedOrder);
-      setDetailModalVisible(false);
-      showToastMessage(`Loaded order ${selectedOrder.orderNumber} for editing.`, 'info');
-      onNavigate('menu');
-    }
-  };
-
-  const handleCancelOrder = () => {
-    if (selectedOrder) {
-      setCancelDialogVisible(true);
-    }
-  };
-
-  const confirmCancelOrder = () => {
-    if (selectedOrder) {
-      cancelOrder(selectedOrder.id);
-
-      // Release table if Dine-in
-      if (selectedOrder.tableId) {
-        updateTableStatus(selectedOrder.tableId, 'available');
-      }
-
-      setCancelDialogVisible(false);
-      setDetailModalVisible(false);
-      showToastMessage(`Order ${selectedOrder.orderNumber} Cancelled.`, 'error');
-    }
-  };
-
-  const handlePrintKOT = async () => {
-    if (selectedOrder) {
-      const res = await printKOT(selectedOrder);
-      showToastMessage(res.message, 'success');
-    }
   };
 
   const handleOpenReceiptModal = () => {
@@ -340,26 +302,6 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({ onNavigate, showToas
                  {selectedOrder.status !== 'completed' && selectedOrder.status !== 'cancelled' && selectedOrder.status !== 'rejected' ? (
                   <>
                     <Button
-                      label="Cancel Order"
-                      variant="danger"
-                      onPress={handleCancelOrder}
-                      style={styles.actionBtn}
-                    />
-                    <Button
-                      label="Print KOT"
-                      variant="outline"
-                      icon="printer"
-                      onPress={handlePrintKOT}
-                      style={styles.actionBtn}
-                    />
-                    <Button
-                      label="Edit Order"
-                      variant="secondary"
-                      icon="pencil"
-                      onPress={handleModifyKOT}
-                      style={styles.actionBtn}
-                    />
-                    <Button
                       label="Collect & Checkout"
                       variant="primary"
                       icon="cash-register"
@@ -413,18 +355,6 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({ onNavigate, showToas
         onClose={() => setWhatsAppModalVisible(false)}
         onSuccess={(msg) => showToastMessage(msg, 'success')}
         onError={(err) => showToastMessage(err, 'error')}
-      />
-
-      {/* Cancel dialog */}
-      <Dialog
-        visible={cancelDialogVisible}
-        title="Cancel Order"
-        description="Are you absolutely sure you want to cancel this order? This will void all items in KOT and release the table."
-        confirmLabel="Yes, Cancel"
-        cancelLabel="Discard"
-        type="danger"
-        onConfirm={confirmCancelOrder}
-        onCancel={() => setCancelDialogVisible(false)}
       />
     </View>
   );
