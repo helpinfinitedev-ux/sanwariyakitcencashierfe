@@ -6,18 +6,35 @@ import { useSettingsStore } from '@/stores/useSettingsStore';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { useOrderStore } from '@/stores/useOrderStore';
 import { useFloorStore } from '@/stores/useFloorStore';
+import { useCashierNotificationStore } from '@/stores/useCashierNotificationStore';
 import { formatDate, formatTime, formatCurrency } from '@/utils/formatters';
 import { MOCK_RESTAURANT, MOCK_PRODUCTS, MOCK_CUSTOMERS, MOCK_WAITERS, Order } from '@/mock/data';
 import { Badge } from '@/components/ui/Badge';
 
 export interface HeaderProps {
   showToastMessage?: (msg: string, type?: 'success' | 'error' | 'info') => void;
+  onNavigate?: (route: string) => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ showToastMessage }) => {
+export const Header: React.FC<HeaderProps> = ({ showToastMessage, onNavigate }) => {
   const { themeMode, toggleTheme } = useSettingsStore();
   const { user, currentUser } = useAuthStore();
   const colors = COLORS[themeMode];
+
+  // Bell feed: ready-to-bill alerts (waiter served an order) live here.
+  const notifications = useCashierNotificationStore((s) => s.notifications);
+  const markAllRead = useCashierNotificationStore((s) => s.markAllRead);
+  const unreadNotifCount = notifications.filter((n) => !n.read).length;
+
+  const openNotifications = () => {
+    setShowNotifications(true);
+    markAllRead();
+  };
+
+  const handleNotificationPress = (route?: string) => {
+    setShowNotifications(false);
+    if (route && onNavigate) onNavigate(route);
+  };
 
   const [time, setTime] = useState(new Date());
   const [showNotifications, setShowNotifications] = useState(false);
@@ -348,14 +365,14 @@ export const Header: React.FC<HeaderProps> = ({ showToastMessage }) => {
 
         {/* Notifications */}
         <TouchableOpacity
-          onPress={() => setShowNotifications(true)}
+          onPress={openNotifications}
           activeOpacity={0.7}
           style={[styles.actionIcon, { backgroundColor: colors.surfaceLight }]}
         >
           <MaterialCommunityIcons name="bell-outline" size={22} color={colors.textPrimary} />
-          {pendingOrders.length > 0 && (
+          {pendingOrders.length + unreadNotifCount > 0 && (
             <View style={[styles.notificationBadge, { backgroundColor: colors.primary }]}>
-              <Text style={styles.badgeText}>{pendingOrders.length}</Text>
+              <Text style={styles.badgeText}>{pendingOrders.length + unreadNotifCount}</Text>
             </View>
           )}
         </TouchableOpacity>
@@ -445,6 +462,37 @@ export const Header: React.FC<HeaderProps> = ({ showToastMessage }) => {
                 </TouchableOpacity>
               </View>
             </View>
+
+            {/* Ready-to-bill alerts (waiter marked an order served) */}
+            {notifications.length > 0 && (
+              <View style={styles.notifSection}>
+                <Text style={[styles.notifSectionTitle, { color: colors.textSecondary }]}>
+                  Ready to Bill
+                </Text>
+                {notifications.slice(0, 6).map((n) => (
+                  <TouchableOpacity
+                    key={n.id}
+                    activeOpacity={0.7}
+                    onPress={() => handleNotificationPress(n.route)}
+                    style={[
+                      styles.notifRow,
+                      { backgroundColor: colors.surfaceLight, borderColor: colors.border },
+                    ]}
+                  >
+                    <MaterialCommunityIcons name="cash-register" size={20} color={colors.primary} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.notifRowTitle, { color: colors.textPrimary }]}>
+                        {n.title}
+                      </Text>
+                      <Text style={[styles.notifRowDesc, { color: colors.textSecondary }]}>
+                        {n.description}
+                      </Text>
+                    </View>
+                    <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textMuted} />
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
 
             {/* List */}
             {pendingOrders.length === 0 ? (
@@ -824,6 +872,33 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginLeft: SPACING.sm,
     position: 'relative',
+  },
+  notifSection: {
+    paddingHorizontal: SPACING.md,
+    paddingTop: SPACING.md,
+    gap: SPACING.sm,
+  },
+  notifSectionTitle: {
+    fontSize: TYPOGRAPHY.sizes.xs,
+    fontWeight: TYPOGRAPHY.weights.bold,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  notifRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+    padding: SPACING.sm,
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+  },
+  notifRowTitle: {
+    fontSize: TYPOGRAPHY.sizes.sm,
+    fontWeight: TYPOGRAPHY.weights.semibold,
+  },
+  notifRowDesc: {
+    fontSize: TYPOGRAPHY.sizes.xs,
+    marginTop: 2,
   },
   notificationBadge: {
     position: 'absolute',
