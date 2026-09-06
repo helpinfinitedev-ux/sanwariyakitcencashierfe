@@ -3,6 +3,7 @@ import { useOrderStore } from '@/stores/useOrderStore';
 import { useFloorStore } from '@/stores/useFloorStore';
 import { useMenuStore } from '@/stores/useMenuStore';
 import { useReportStore } from '@/stores/useReportStore';
+import { useCashierNotificationStore } from '@/stores/useCashierNotificationStore';
 
 let socket: Socket | null = null;
 
@@ -129,6 +130,14 @@ export const socketService = {
         } else if (event === 'order:served') {
           // Waiter has served the table — it's now ready for billing.
           playPendingChime();
+          useCashierNotificationStore.getState().pushNotification({
+            type: 'ready_to_bill',
+            title: 'Ready to Bill',
+            description: `Table ${payload?.tableNo || ''} order #${
+              payload?.liveOrderId || ''
+            } has been served and is ready to bill.`,
+            route: 'orders',
+          });
           if (showToastMessage) {
             showToastMessage(`Ready to bill - Table ${payload.tableNo || ''}`, 'info');
           }

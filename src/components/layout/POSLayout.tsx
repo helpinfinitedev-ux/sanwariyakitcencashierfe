@@ -36,7 +36,7 @@ export const POSLayout: React.FC<POSLayoutProps> = ({
 
         {/* Right workspace: Header + Content row */}
         <View style={styles.workspace}>
-          <Header showToastMessage={showToastMessage} />
+          <Header showToastMessage={showToastMessage} onNavigate={onNavigate} />
 
           {/* Core content and Cart right-panel */}
           <View style={styles.contentRow}>
