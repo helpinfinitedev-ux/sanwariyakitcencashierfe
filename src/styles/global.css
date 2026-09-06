@@ -27,6 +27,19 @@ body,
   overflow: hidden;
 }
 
+/*
+ * The app is rendered straight into #root via createRoot (no AppRegistry), and
+ * react-native-web's root View uses flex: 1. Without a flex context on #root,
+ * that flex:1 has nothing to grow into, so the whole app collapses to its
+ * content height (leaving a void below) and every flex:1 descendant — including
+ * the floor map — gets zero height. Making #root a column flex container lets
+ * the app fill the viewport and cascades height down the tree.
+ */
+#root {
+  display: flex;
+  flex-direction: column;
+}
+
 body {
   overscroll-behavior: none;
   -webkit-font-smoothing: antialiased;
