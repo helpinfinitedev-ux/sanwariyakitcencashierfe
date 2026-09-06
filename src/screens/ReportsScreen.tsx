@@ -210,7 +210,7 @@ export const ReportsScreen: React.FC = () => {
                 Discount: -{formatCurrency(adminData.salesSummary.totalDiscount)}
               </Text>
             </View>
-            <Text style={[styles.kpiLabel, { color: colors.textSecondary }]}>GST (18%) Collected</Text>
+            <Text style={[styles.kpiLabel, { color: colors.textSecondary }]}>GST (5%) Collected</Text>
             <Text style={[styles.kpiValue, { color: '#10B981' }]}>
               {formatCurrency(adminData.salesSummary.totalGst)}
             </Text>

@@ -303,7 +303,7 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({ onNavigate, showToas
                     </View>
                   )}
                   <View style={styles.calcRow}>
-                    <Text style={{ color: colors.textSecondary }}>GST (18%)</Text>
+                    <Text style={{ color: colors.textSecondary }}>GST (5%)</Text>
                     <Text style={{ color: colors.textPrimary }}>
                       {formatCurrency(selectedOrder.gst)}
                     </Text>

@@ -40,9 +40,9 @@ export const formatTime = (date: Date | string): string => {
 };
 
 /**
- * Calculates standard GST (CGST 9% + SGST 9% = 18% total).
+ * Calculates standard GST (CGST 2.5% + SGST 2.5% = 5% total).
  */
-export const calculateGST = (subtotal: number, rate: number = 0.18): number => {
+export const calculateGST = (subtotal: number, rate: number = 0.05): number => {
   return parseFloat((subtotal * rate).toFixed(2));
 };
 

@@ -190,7 +190,7 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
                   </View>
                 )}
                 <View style={styles.totalLine}>
-                  <Text style={styles.receiptMono}>GST (18% Total):</Text>
+                  <Text style={styles.receiptMono}>GST (5% Total):</Text>
                   <Text style={styles.receiptMono}>{receipt.totals.gstAmount}</Text>
                 </View>
                 <Text style={styles.receiptDivider}>==========================================</Text>

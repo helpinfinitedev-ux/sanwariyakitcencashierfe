@@ -3,7 +3,7 @@ import { create } from 'zustand';
 interface SettingsState {
   themeMode: 'dark' | 'light';
   isSidebarCollapsed: boolean;
-  taxRate: number; // e.g. 0.18 for 18% GST
+  taxRate: number; // e.g. 0.05 for 5% GST
   kdsAutoPrint: boolean;
   receiptAutoPrint: boolean;
   toggleTheme: () => void;
@@ -23,7 +23,7 @@ interface SettingsState {
 export const useSettingsStore = create<SettingsState>((set) => ({
   themeMode: 'dark', // default theme is premium dark mode
   isSidebarCollapsed: false,
-  taxRate: 0.18,
+  taxRate: 0.05,
   kdsAutoPrint: true,
   receiptAutoPrint: true,
 

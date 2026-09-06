@@ -290,7 +290,7 @@ export const BillingScreen: React.FC<BillingScreenProps> = ({ onNavigate, showTo
               </View>
             )}
             <View style={styles.mathRow}>
-              <Text style={[styles.mathLabel, { color: colors.textSecondary }]}>GST (18%)</Text>
+              <Text style={[styles.mathLabel, { color: colors.textSecondary }]}>GST (5%)</Text>
               <Text style={[styles.mathVal, { color: colors.textPrimary }]}>
                 {formatCurrency(gst)}
               </Text>

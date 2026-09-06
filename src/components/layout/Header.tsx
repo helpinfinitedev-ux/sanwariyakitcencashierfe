@@ -167,7 +167,7 @@ export const Header: React.FC<HeaderProps> = ({ showToastMessage, onNavigate }) 
       ];
 
       const subtotal = addonItems.reduce((s, it) => s + it.product.price * it.quantity, 0);
-      const gst = Math.round(subtotal * 0.18 * 100) / 100;
+      const gst = Math.round(subtotal * 0.05 * 100) / 100;
       const total = Math.round((subtotal + gst) * 100) / 100;
       const orderNum = `SK-${1000 + orders.length + 1}-ADD`;
 
@@ -263,7 +263,7 @@ export const Header: React.FC<HeaderProps> = ({ showToastMessage, onNavigate }) 
       (sum, item) => sum + item.product.price * item.quantity,
       0,
     );
-    const gst = Math.round(subtotal * 0.18 * 100) / 100;
+    const gst = Math.round(subtotal * 0.05 * 100) / 100;
     const discount = Math.random() > 0.5 ? 50 : 0;
     const total = Math.round((subtotal + gst - discount) * 100) / 100;
 
