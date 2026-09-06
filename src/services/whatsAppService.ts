@@ -62,7 +62,7 @@ export const formatWhatsAppBillMessage = (
     lines.push(`Discount: -${formatCurrency(order.discount)}`);
   }
 
-  lines.push(`GST (18%): ${formatCurrency(order.gst)}`);
+  lines.push(`GST (5%): ${formatCurrency(order.gst)}`);
   lines.push(`*Grand Total: ${formatCurrency(order.total)}*`);
 
   if (order.paymentMethod) {

@@ -365,7 +365,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
         </View>
 
         <View style={styles.calcRow}>
-          <Text style={[styles.calcLabel, { color: colors.textSecondary }]}>GST (18%)</Text>
+          <Text style={[styles.calcLabel, { color: colors.textSecondary }]}>GST (5%)</Text>
           <Text style={[styles.calcValue, { color: colors.textPrimary }]}>
             {formatCurrency(gst)}
           </Text>
