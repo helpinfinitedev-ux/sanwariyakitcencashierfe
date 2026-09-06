@@ -19,7 +19,7 @@ function playPendingChime() {
 
 // Determine central backend socket host
 const getSocketUrl = () => {
-  const envUrl = import.meta.env.VITE_API_URL || import.meta.env.EXPO_PUBLIC_API_URL;
+  const envUrl = import.meta.env.VITE_PUBLIC_API_URL;
   if (!envUrl || envUrl === 'mock_api_url') {
     return 'http://localhost:4000';
   }
