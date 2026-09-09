@@ -112,6 +112,21 @@ export const socketService = {
           if (showToastMessage) {
             showToastMessage(`New KOT pending approval for Table ${payload.tableNo || ''}`, 'info');
           }
+        } else if (event === 'order:approved') {
+          // New flow: waiter sends orders straight to the kitchen. The cashier
+          // is only notified — no approval action required.
+          playPendingChime();
+          useCashierNotificationStore.getState().pushNotification({
+            type: 'new_order',
+            title: 'New Order',
+            description: `Order #${payload?.liveOrderId || ''} for Table ${
+              payload?.tableNo || ''
+            } has been sent to the kitchen.`,
+            route: 'orders',
+          });
+          if (showToastMessage) {
+            showToastMessage(`New order — Table ${payload?.tableNo || ''}`, 'info');
+          }
         } else if (event === 'order:updated') {
           // A waiter edited an existing order — notify the cashier.
           playPendingChime();
