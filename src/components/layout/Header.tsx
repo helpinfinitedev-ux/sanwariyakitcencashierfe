@@ -467,7 +467,7 @@ export const Header: React.FC<HeaderProps> = ({ showToastMessage, onNavigate }) 
             {notifications.length > 0 && (
               <View style={styles.notifSection}>
                 <Text style={[styles.notifSectionTitle, { color: colors.textSecondary }]}>
-                  Ready to Bill
+                  Notifications
                 </Text>
                 {notifications.slice(0, 6).map((n) => (
                   <TouchableOpacity
@@ -479,7 +479,11 @@ export const Header: React.FC<HeaderProps> = ({ showToastMessage, onNavigate }) 
                       { backgroundColor: colors.surfaceLight, borderColor: colors.border },
                     ]}
                   >
-                    <MaterialCommunityIcons name="cash-register" size={20} color={colors.primary} />
+                    <MaterialCommunityIcons
+                      name={n.type === 'new_order' ? 'receipt-text-outline' : 'cash-register'}
+                      size={20}
+                      color={colors.primary}
+                    />
                     <View style={{ flex: 1 }}>
                       <Text style={[styles.notifRowTitle, { color: colors.textPrimary }]}>
                         {n.title}

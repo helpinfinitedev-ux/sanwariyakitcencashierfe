@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-export type CashierNotificationType = 'ready_to_bill' | 'info';
+export type CashierNotificationType = 'ready_to_bill' | 'new_order' | 'info';
 
 export interface CashierNotification {
   id: string;
