@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { Order, OrderStatus, OrderItem, AddonApprovalStatus } from '@/mock/data';
 import { useActivityLogStore } from './useActivityLogStore';
 import { useCartStore } from './useCartStore';
+import { useFloorStore } from './useFloorStore';
 import { api } from '@/services/authService.mock';
 
 const mapBackendStatusToPosStatus = (status: string): OrderStatus => {
@@ -296,8 +297,29 @@ export const useOrderStore = create<OrderState>((set, get) => ({
 
   completeOrder: async (orderId, paymentMethod) => {
     try {
+      // Capture the table this order occupies before completing it.
+      const completing = get().orders.find((o) => o.id === orderId);
+
       await api.post(`/orders/${orderId}/complete`);
+
+      // The backend frees the table on completion (freeTableIfIdle). Free it
+      // locally too so the floor map updates immediately, then reconcile from
+      // the backend. This runs regardless of how billing was triggered.
+      if (completing?.tableId) {
+        const floorTables = useFloorStore.getState().tables;
+        const floorTable = floorTables.find(
+          (t) =>
+            t.id === completing.tableId ||
+            t.tableNo === completing.tableId ||
+            t.name === completing.tableName,
+        );
+        if (floorTable) {
+          useFloorStore.getState().updateTableStatus(floorTable.id, 'available');
+        }
+      }
+
       await get().fetchOrders();
+      await useFloorStore.getState().fetchTables();
 
       const order = get().orders.find((o) => o.id === orderId);
       if (order) {
