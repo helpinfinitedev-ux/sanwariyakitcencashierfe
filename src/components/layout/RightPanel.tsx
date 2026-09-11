@@ -63,7 +63,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
 
   // Stores for placing/paying orders
   const updateTableStatus = useFloorStore((state) => state.updateTableStatus);
-  const { addOrder, updateOrder, orders } = useOrderStore();
+  const { sendNewOrderToKitchen, updateOrder, orders } = useOrderStore();
   const { customers } = useCustomerStore();
 
   // Calculations
@@ -143,7 +143,8 @@ export const RightPanel: React.FC<RightPanelProps> = ({
       });
       showToastMessage(`KOT Updated: ${orderNumber}`);
     } else {
-      addOrder(newOrder);
+      // Create + send on the backend so it reaches the KDS (takeaway included).
+      sendNewOrderToKitchen(newOrder);
       showToastMessage(`KOT Sent to Kitchen: ${orderNumber}`);
     }
 
