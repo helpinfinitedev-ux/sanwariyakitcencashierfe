@@ -110,6 +110,7 @@ interface OrderState {
   error: string | null;
   fetchOrders: () => Promise<void>;
   addOrder: (order: Order) => void;
+  sendNewOrderToKitchen: (order: Order) => Promise<void>;
   updateOrder: (orderId: string, patch: Partial<Order>) => void;
   updateOrderStatus: (orderId: string, status: OrderStatus, rejectionReason?: string) => Promise<void>;
   approveAddonOrder: (addonOrderId: string) => void;
@@ -162,6 +163,35 @@ export const useOrderStore = create<OrderState>((set, get) => ({
     set((state) => ({
       orders: [standardizedOrder, ...state.orders],
     }));
+  },
+
+  // Create the order on the backend and send it straight to the kitchen, so
+  // cashier-placed orders (esp. takeaway/walk-in) show up on the KDS. Falls
+  // back to a local-only order if the backend is unreachable, so the cashier
+  // flow is never blocked.
+  sendNewOrderToKitchen: async (order) => {
+    try {
+      const payload = {
+        items: order.items.map((it) => ({
+          productId: it.product.id,
+          quantity: it.quantity,
+          notes: it.notes,
+        })),
+        customerName: order.customerName,
+        customerPhone: order.customerPhone,
+        tableNo: order.type === 'dine-in' ? order.tableName : undefined,
+        type: order.type,
+        discount: order.discount,
+      };
+      const createRes = await api.post('/orders', payload);
+      const backendId = createRes.data?.data?._id;
+      if (!backendId) throw new Error('No order id returned from create');
+      await api.post(`/orders/${backendId}/send`);
+      await get().fetchOrders();
+    } catch (err) {
+      console.error('Failed to send order to kitchen, keeping it local:', err);
+      get().addOrder(order);
+    }
   },
 
   // Local edit of an existing order (items/totals/table/customer). Preserves
