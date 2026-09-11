@@ -106,11 +106,11 @@ export interface Order {
 
 export const MOCK_RESTAURANT: Restaurant = {
   id: 'rest-01',
-  name: 'Sanwariya Kitchen',
-  branch: 'Main Branch - Sector V',
-  address: 'Salt Lake Sector V, Kolkata, West Bengal',
-  phone: '+91 98765 43210',
-  gstNumber: '19AAACS2341M1ZN',
+  name: 'Sanwariya Cuisine',
+  branch: 'Amrawati Shanti Complex',
+  address: 'Olandganj, Jaunpur 222002',
+  phone: '8960670030',
+  gstNumber: '09ADAAS0340K1ZG',
 };
 
 export const MOCK_FLOORS: Floor[] = [
