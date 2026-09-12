@@ -14,7 +14,7 @@ export const MOCK_ACTIVITY_LOGS: ActivityLogEvent[] = [
     cashierId: 'EMP-9821',
     cashierName: 'Moazzam Ali',
     storeId: 'rest-01',
-    storeName: 'Sanwariya Kitchen',
+    storeName: 'Sanwariya Cuisine',
     payload: {
       itemsCount: 3,
       subtotal: 730,
@@ -31,7 +31,7 @@ export const MOCK_ACTIVITY_LOGS: ActivityLogEvent[] = [
     cashierId: 'EMP-9821',
     cashierName: 'Moazzam Ali',
     storeId: 'rest-01',
-    storeName: 'Sanwariya Kitchen',
+    storeName: 'Sanwariya Cuisine',
     payload: {
       previousStatus: 'available',
       newStatus: 'occupied',
@@ -49,7 +49,7 @@ export const MOCK_ACTIVITY_LOGS: ActivityLogEvent[] = [
     cashierId: 'EMP-9821',
     cashierName: 'Moazzam Ali',
     storeId: 'rest-01',
-    storeName: 'Sanwariya Kitchen',
+    storeName: 'Sanwariya Cuisine',
     payload: {
       phone: '+91 98200 11223',
       points: 120,
@@ -66,7 +66,7 @@ export const MOCK_ACTIVITY_LOGS: ActivityLogEvent[] = [
     cashierId: 'EMP-9821',
     cashierName: 'Moazzam Ali',
     storeId: 'rest-01',
-    storeName: 'Sanwariya Kitchen',
+    storeName: 'Sanwariya Cuisine',
     payload: {
       itemsCount: 2,
       subtotal: 500,
@@ -85,7 +85,7 @@ export const MOCK_ACTIVITY_LOGS: ActivityLogEvent[] = [
     cashierId: 'EMP-9821',
     cashierName: 'Moazzam Ali',
     storeId: 'rest-01',
-    storeName: 'Sanwariya Kitchen',
+    storeName: 'Sanwariya Cuisine',
     payload: {
       paymentMethod: 'upi',
       amount: 590,
@@ -105,7 +105,7 @@ export const MOCK_ACTIVITY_LOGS: ActivityLogEvent[] = [
     cashierId: 'EMP-9821',
     cashierName: 'Moazzam Ali',
     storeId: 'rest-01',
-    storeName: 'Sanwariya Kitchen',
+    storeName: 'Sanwariya Cuisine',
     payload: {
       phone: '+91 98300 22334',
       totalAmount: 590,
@@ -121,7 +121,7 @@ export const MOCK_ACTIVITY_LOGS: ActivityLogEvent[] = [
     cashierId: 'EMP-9821',
     cashierName: 'Moazzam Ali',
     storeId: 'rest-01',
-    storeName: 'Sanwariya Kitchen',
+    storeName: 'Sanwariya Cuisine',
     payload: {
       printerType: 'thermal_80mm',
       receiptNumber: 'REC-SK-1002',
@@ -139,7 +139,7 @@ export const MOCK_ACTIVITY_LOGS: ActivityLogEvent[] = [
     cashierId: 'EMP-9821',
     cashierName: 'Moazzam Ali',
     storeId: 'rest-01',
-    storeName: 'Sanwariya Kitchen',
+    storeName: 'Sanwariya Cuisine',
     payload: {
       itemsCount: 5,
       subtotal: 1580,

@@ -72,7 +72,7 @@ export const LoginScreen: React.FC = () => {
           </View>
           <View style={styles.brandTextGroup}>
             <Text style={[styles.brandTitle, { color: colors.textPrimary }]}>
-              SANWARIYA KITCHEN
+              SANWARIYA CUISINE
             </Text>
             <Text style={[styles.brandSubtitle, { color: colors.primary }]}>
               TOUCH POS TERMINAL
@@ -268,7 +268,7 @@ export const LoginScreen: React.FC = () => {
       {/* Footer Info */}
       <View style={styles.footerBar}>
         <Text style={[styles.footerText, { color: colors.textMuted }]}>
-          Sanwariya Kitchen POS v1.0.0 • Secured Cashier Terminal System
+          Sanwariya Cuisine POS v1.0.0 • Secured Cashier Terminal System
         </Text>
       </View>
     </View>

@@ -73,7 +73,7 @@ const mapBackendUserToAuthUser = (user: any): AuthUser => ({
   employeeId: user.id || user._id,
   role: 'CASHIER',
   storeId: 'store-1',
-  storeName: 'Sanwariya Kitchen',
+  storeName: 'Sanwariya Cuisine',
   branchName: 'Main Branch - Sector V',
   isActive: user.isActive ?? true,
 });

@@ -70,7 +70,7 @@ export const formatWhatsAppBillMessage = (
   }
 
   lines.push(`━━━━━━━━━━━━━━━━━━━━━`);
-  lines.push(`✨ *Thank you for dining with Sanwariya Kitchen!*`);
+  lines.push(`✨ *Thank you for dining with Sanwariya Cuisine!*`);
   lines.push(`We look forward to serving you again soon.`);
 
   return lines.join('\n');
