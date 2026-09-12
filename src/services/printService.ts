@@ -93,7 +93,6 @@ export const formatThermalReceipt = (
     },
     footer: {
       thankYouMessage: '*** THANK YOU! VISIT AGAIN ***',
-      fssaiLicense: 'FSSAI Lic No: 12821019000456',
       poweredBy: 'Sanwariya POS Thermal Core v1.0',
     },
   };
