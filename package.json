@@ -1,7 +1,7 @@
 {
   "name": "cashier-touch-pos",
   "version": "1.0.0",
-  "description": "Sanwariya Kitchen cashier POS web application",
+  "description": "Sanwariya Cuisine cashier POS web application",
   "type": "module",
   "dependencies": {
     "@mdi/js": "^7.4.47",

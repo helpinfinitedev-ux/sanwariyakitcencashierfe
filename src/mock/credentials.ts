@@ -21,7 +21,7 @@ export const MOCK_CASHIER_CREDENTIALS: CashierCredential[] = [
     cashierName: 'Moazzam Ali',
     employeeId: 'EMP-9821',
     storeId: 'rest-01',
-    storeName: 'Sanwariya Kitchen',
+    storeName: 'Sanwariya Cuisine',
     branchName: 'Main Branch - Sector V',
   },
   {
@@ -33,7 +33,7 @@ export const MOCK_CASHIER_CREDENTIALS: CashierCredential[] = [
     cashierName: 'Rahul Sharma',
     employeeId: 'EMP-4412',
     storeId: 'rest-01',
-    storeName: 'Sanwariya Kitchen',
+    storeName: 'Sanwariya Cuisine',
     branchName: 'Main Branch - Sector V',
   },
   {
@@ -45,7 +45,7 @@ export const MOCK_CASHIER_CREDENTIALS: CashierCredential[] = [
     cashierName: 'Suresh Kumar',
     employeeId: 'EMP-1102',
     storeId: 'rest-01',
-    storeName: 'Sanwariya Kitchen',
+    storeName: 'Sanwariya Cuisine',
     branchName: 'Main Branch - Sector V',
   },
 ];

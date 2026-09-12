@@ -123,13 +123,15 @@ export const buildReceiptHtml = (order: Order): string => {
     @page { size: 80mm auto; margin: 0; }
     * { box-sizing: border-box; }
     html, body { margin: 0; }
-    body { width: 80mm; padding: 4mm 3mm; font-family: 'Courier New', ui-monospace, monospace; font-size: 12px; color: #000; }
+    /* Bold + slightly larger everywhere: thermal heads print thin strokes faint,
+       so the whole receipt is set bold and black for legibility. */
+    body { width: 80mm; padding: 4mm 3mm; font-family: 'Courier New', ui-monospace, monospace; font-size: 13px; font-weight: 700; color: #000; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     .c { text-align: center; }
-    .b { font-weight: bold; }
-    .lg { font-size: 15px; }
-    .muted { font-size: 10px; }
+    .b { font-weight: 800; }
+    .lg { font-size: 16px; }
+    .muted { font-size: 11px; font-weight: 700; }
     .row { display: flex; justify-content: space-between; }
-    hr { border: none; border-top: 1px dashed #000; margin: 6px 0; }
+    hr { border: none; border-top: 2px dashed #000; margin: 6px 0; }
     table { width: 100%; border-collapse: collapse; }
     td { vertical-align: top; padding: 1px 0; }
     .qty { width: 14%; text-align: center; }

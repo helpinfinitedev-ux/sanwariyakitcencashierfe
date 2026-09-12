@@ -788,7 +788,7 @@ export const BillingScreen: React.FC<BillingScreenProps> = ({ onNavigate, showTo
                 {formatCurrency(total)}
               </Text>
               <Text style={[styles.qrMerchant, { color: colors.textSecondary }]}>
-                Merchant: SANWARIYA KITCHEN
+                Merchant: SANWARIYA CUISINE
               </Text>
             </View>
 

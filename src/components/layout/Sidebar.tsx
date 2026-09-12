@@ -54,7 +54,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentRoute, onNavigate }) =>
         {!collapsed && (
           <View style={styles.brandTextContainer}>
             <Text style={[styles.brandName, { color: colors.textPrimary }]}>SANWARIYA</Text>
-            <Text style={[styles.brandTagline, { color: colors.primary }]}>KITCHEN POS</Text>
+            <Text style={[styles.brandTagline, { color: colors.primary }]}>CUISINE POS</Text>
           </View>
         )}
       </View>
