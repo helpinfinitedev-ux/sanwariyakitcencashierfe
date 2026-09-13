@@ -168,15 +168,78 @@ export const OrderCard: React.FC<OrderCardProps> = ({ order, onPress }) => {
 
   const itemCount = order.items.reduce((sum, item) => sum + item.quantity, 0);
 
+  const isTakeaway = order.type === 'takeaway';
+  const isDineIn = order.type === 'dine-in';
+
+  // Primary label matching example: Table T05 vs Takeaway #1025
+  const primaryTitle = isTakeaway
+    ? `Takeaway #${order.orderNumber}`
+    : order.tableName || `Table ${order.tableNumber || '1'}`;
+
   return (
     <Card onPress={onPress} style={styles.orderCard}>
       <View style={styles.orderHeader}>
-        <View>
-          <Text style={[styles.orderNumber, { color: colors.textPrimary }]}>
-            {order.orderNumber}
-          </Text>
+        <View style={{ flex: 1, marginRight: SPACING.sm }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6, marginBottom: 2 }}>
+            <Text style={[styles.orderNumber, { color: colors.textPrimary }]}>
+              {primaryTitle}
+            </Text>
+            {isTakeaway ? (
+              <View
+                style={{
+                  backgroundColor: colors.primary,
+                  paddingHorizontal: 8,
+                  paddingVertical: 2,
+                  borderRadius: RADIUS.sm,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                }}
+              >
+                <MaterialCommunityIcons
+                  name="bag-checked"
+                  size={12}
+                  color="#FFFFFF"
+                  style={{ marginRight: 4 }}
+                />
+                <Text
+                  style={{
+                    color: '#FFFFFF',
+                    fontSize: 11,
+                    fontWeight: '800',
+                    letterSpacing: 0.8,
+                  }}
+                >
+                  TAKEAWAY
+                </Text>
+              </View>
+            ) : isDineIn ? (
+              <View
+                style={{
+                  backgroundColor: colors.secondaryLight,
+                  borderColor: colors.secondary,
+                  borderWidth: 1,
+                  paddingHorizontal: 7,
+                  paddingVertical: 1,
+                  borderRadius: RADIUS.sm,
+                }}
+              >
+                <Text
+                  style={{
+                    color: colors.secondary,
+                    fontSize: 10,
+                    fontWeight: '800',
+                    letterSpacing: 0.6,
+                  }}
+                >
+                  DINE-IN
+                </Text>
+              </View>
+            ) : null}
+          </View>
           <Text style={[styles.orderTime, { color: colors.textMuted }]}>
-            {formatTime(order.createdAt)} • {order.type.toUpperCase()}
+            {isTakeaway
+              ? `${order.tableName ? `Slot: ${order.tableName} • ` : ''}${formatTime(order.createdAt)}`
+              : `Order #${order.orderNumber} • ${formatTime(order.createdAt)}`}
           </Text>
         </View>
         <OrderStatusBadge status={order.status} />
@@ -186,7 +249,13 @@ export const OrderCard: React.FC<OrderCardProps> = ({ order, onPress }) => {
 
       <View style={styles.orderBody}>
         <Text style={[styles.orderInfo, { color: colors.textSecondary }]}>
-          {order.tableName ? `Table: ${order.tableName}` : 'Takeaway / Delivery'}
+          {isTakeaway
+            ? order.tableName
+              ? `Slot: ${order.tableName}`
+              : 'Takeaway (No Table)'
+            : order.tableName
+              ? `Table: ${order.tableName}`
+              : 'Delivery'}
         </Text>
         <Text style={[styles.orderInfo, { color: colors.textSecondary }]}>
           Items: {itemCount} ({order.items.length} unique)

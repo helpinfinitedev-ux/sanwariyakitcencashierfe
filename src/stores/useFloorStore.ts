@@ -27,8 +27,25 @@ const mapBackendStatus = (status: string): TableStatus => {
   }
 };
 
+const TAKEAWAY_SECTION = 'Takeaway';
+
+const DEFAULT_TAKEAWAY_SLOTS: Table[] = [
+  { id: 'takeaway-1', name: 'Takeaway 1', tableNo: 'Takeaway 1', floorId: TAKEAWAY_SECTION, status: 'available', capacity: 1, x: 6, y: 8, isTakeaway: true },
+  { id: 'takeaway-2', name: 'Takeaway 2', tableNo: 'Takeaway 2', floorId: TAKEAWAY_SECTION, status: 'available', capacity: 1, x: 29, y: 8, isTakeaway: true },
+  { id: 'takeaway-3', name: 'Takeaway 3', tableNo: 'Takeaway 3', floorId: TAKEAWAY_SECTION, status: 'available', capacity: 1, x: 52, y: 8, isTakeaway: true },
+  { id: 'takeaway-4', name: 'Takeaway 4', tableNo: 'Takeaway 4', floorId: TAKEAWAY_SECTION, status: 'available', capacity: 1, x: 75, y: 8, isTakeaway: true },
+  { id: 'takeaway-5', name: 'Takeaway 5', tableNo: 'Takeaway 5', floorId: TAKEAWAY_SECTION, status: 'available', capacity: 1, x: 6, y: 36, isTakeaway: true },
+  { id: 'takeaway-6', name: 'Takeaway 6', tableNo: 'Takeaway 6', floorId: TAKEAWAY_SECTION, status: 'available', capacity: 1, x: 29, y: 36, isTakeaway: true },
+];
+
 const mapBackendTable = (t: any, indexInSection: number): Table => {
   const { x, y } = gridPosition(indexInSection);
+  const isTakeaway = Boolean(
+    t.isTakeaway ||
+    t.section?.toLowerCase() === 'takeaway' ||
+    t.label?.toLowerCase()?.includes('takeaway') ||
+    String(t.tableNo)?.toLowerCase()?.includes('takeaway')
+  );
   return {
     id: t._id || t.id,
     name: t.label || `Table ${t.tableNo}`,
@@ -39,16 +56,50 @@ const mapBackendTable = (t: any, indexInSection: number): Table => {
     waiterId: t.waiter?._id || t.waiter || undefined,
     x,
     y,
+    isTakeaway,
   };
 };
 
-const buildFloorPlan = (backendTables: any[]): { floors: Floor[]; tables: Table[] } => {
+const buildFloorPlan = (
+  backendTables: any[],
+  existingTables: Table[] = [],
+  activeOrders: any[] = [],
+): { floors: Floor[]; tables: Table[] } => {
   const perSection: Record<string, number> = {};
   const tables = backendTables.map((t) => {
     const section = t.section || 'Main';
     const idx = (perSection[section] = (perSection[section] ?? -1) + 1);
     return mapBackendTable(t, idx);
   });
+
+  const relevantActiveOrders = (activeOrders || []).filter(
+    (o) => o && o.status !== 'completed' && o.status !== 'cancelled' && o.status !== 'rejected',
+  );
+
+  // Ensure designated Takeaway slots are always present
+  const hasTakeawaySection = tables.some(
+    (t) => t.floorId.toLowerCase() === 'takeaway' || t.isTakeaway
+  );
+  if (!hasTakeawaySection) {
+    const takeawaySlots = DEFAULT_TAKEAWAY_SLOTS.map((slot) => {
+      const existing = existingTables.find((et) => et.id === slot.id || et.name === slot.name);
+      // A slot is only occupied/billing if an active order is actually tied to it.
+      // Once the order completes, it is guaranteed to resolve to 'available'.
+      const hasActiveOrder = relevantActiveOrders.some(
+        (o) =>
+          o.tableId === slot.id ||
+          o.tableId === slot.tableNo ||
+          o.tableName === slot.name ||
+          o.tableName === slot.tableNo,
+      );
+      const resolvedStatus: TableStatus = hasActiveOrder
+        ? (existing?.status === 'billing' ? 'billing' : 'occupied')
+        : 'available';
+      return { ...slot, status: resolvedStatus };
+    });
+    tables.push(...takeawaySlots);
+  }
+
   const floors: Floor[] = [...new Set(tables.map((t) => t.floorId))].map((id) => ({
     id,
     name: id,
@@ -62,7 +113,7 @@ interface FloorState {
   selectedFloorId: string;
   isLoading: boolean;
   error: string | null;
-  fetchTables: () => Promise<void>;
+  fetchTables: (activeOrders?: any[]) => Promise<void>;
   selectFloor: (floorId: string) => void;
   updateTableStatus: (
     tableId: string,
@@ -80,11 +131,15 @@ export const useFloorStore = create<FloorState>((set, get) => ({
   isLoading: false,
   error: null,
 
-  fetchTables: async () => {
+  fetchTables: async (activeOrders) => {
     set({ isLoading: true, error: null });
     try {
       const response = await api.get('/tables');
-      const { floors, tables } = buildFloorPlan(response.data.data || []);
+      const { floors, tables } = buildFloorPlan(
+        response.data.data || [],
+        get().tables,
+        activeOrders,
+      );
       set((state) => ({
         floors,
         tables,
@@ -129,12 +184,20 @@ export const useFloorStore = create<FloorState>((set, get) => ({
 
     // Best-effort backend sync. A 'table:updated' broadcast triggers a refetch
     // that reconciles every connected client. 'billing' stays client-side.
-    if (status === 'available') {
-      api.post(`/tables/${tableId}/clear`).catch(() => {});
-    } else if (status === 'occupied') {
-      api.post(`/tables/${tableId}/seat`, {}).catch(() => {});
-    } else if (status === 'reserved' || status === 'cleaning') {
-      api.post(`/tables/${tableId}/status`, { status }).catch(() => {});
+    if (!table?.isTakeaway) {
+      if (status === 'available') {
+        api.post(`/tables/${tableId}/clear`).catch(() => {});
+      } else if (status === 'occupied') {
+        api.post(`/tables/${tableId}/seat`, {}).catch(() => {});
+      } else if (status === 'reserved' || status === 'cleaning') {
+        api.post(`/tables/${tableId}/status`, { status }).catch(() => {});
+      }
+    } else if (tableId.length === 24) {
+      if (status === 'available') {
+        api.post(`/tables/${tableId}/clear`).catch(() => {});
+      } else if (status === 'occupied') {
+        api.post(`/tables/${tableId}/seat`, {}).catch(() => {});
+      }
     }
   },
 

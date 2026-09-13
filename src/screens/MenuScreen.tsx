@@ -39,7 +39,7 @@ export const MenuScreen: React.FC = () => {
   } = useMenuStore();
 
   // Cart store state
-  const { addToCart, selectedTableName } = useCartStore();
+  const { addToCart, selectedTableName, orderType } = useCartStore();
 
   const filteredProducts = getFilteredProducts();
 
@@ -61,9 +61,15 @@ export const MenuScreen: React.FC = () => {
 
         {selectedTableName && (
           <View style={[styles.tableTag, { backgroundColor: colors.primaryLight }]}>
-            <MaterialCommunityIcons name="table-chair" size={16} color={colors.primary} />
+            <MaterialCommunityIcons
+              name={orderType === 'takeaway' ? 'bag-checked' : 'table-chair'}
+              size={16}
+              color={colors.primary}
+            />
             <Text style={[styles.tableTagText, { color: colors.primary }]}>
-              Active Table: {selectedTableName}
+              {orderType === 'takeaway'
+                ? `Takeaway Slot: ${selectedTableName}`
+                : `Active Table: ${selectedTableName}`}
             </Text>
           </View>
         )}
