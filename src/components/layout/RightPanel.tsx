@@ -20,6 +20,7 @@ import { formatCurrency, generateOrderId, generateOrderNumber } from '@/utils/fo
 import { Button } from '@/components/ui/Button';
 import { NumberPadModal, Dialog } from '@/components/ui/Dialog';
 import { Order, OrderItem } from '@/mock/data';
+import { printKOT } from '@/services/printService';
 
 interface RightPanelProps {
   onNavigateToBilling?: () => void;
@@ -142,14 +143,25 @@ export const RightPanel: React.FC<RightPanelProps> = ({
         customerPhone: selectedCustomerPhone,
       });
       showToastMessage(`KOT Updated: ${orderNumber}`);
+      if (orderType === 'takeaway') {
+        printKOT({
+          ...newOrder,
+          id: editingOrderId!,
+          orderNumber,
+        });
+      }
     } else {
       // Create + send on the backend so it reaches the KDS (takeaway included).
       sendNewOrderToKitchen(newOrder);
       showToastMessage(`KOT Sent to Kitchen: ${orderNumber}`);
+      // Trigger KOT print automatically for Takeaway orders from Cashier Touch POS
+      if (orderType === 'takeaway') {
+        printKOT(newOrder);
+      }
     }
 
-    // Update table status if it's a Dine-in table
-    if (orderType === 'dine-in' && selectedTableId) {
+    // Update table status if it's a Dine-in table or assigned Takeaway slot
+    if ((orderType === 'dine-in' || orderType === 'takeaway') && selectedTableId) {
       updateTableStatus(selectedTableId, 'occupied', orderId, selectedWaiterId);
     }
 
@@ -235,13 +247,19 @@ export const RightPanel: React.FC<RightPanelProps> = ({
         {/* Table / Waiter Meta information */}
         <View style={styles.metaRow}>
           <View style={styles.metaItem}>
-            <MaterialCommunityIcons name="floor-plan" size={16} color={colors.textMuted} />
+            <MaterialCommunityIcons
+              name={orderType === 'takeaway' ? 'bag-checked' : 'floor-plan'}
+              size={16}
+              color={orderType === 'takeaway' ? colors.primary : colors.textMuted}
+            />
             <Text style={[styles.metaText, { color: colors.textPrimary }]}>
               {orderType === 'dine-in'
                 ? selectedTableName
-                  ? `${selectedFloorName} • ${selectedTableName}`
+                  ? `${selectedFloorName || 'Floor'} • ${selectedTableName}`
                   : 'No Table Selected'
-                : 'Takeaway Order'}
+                : selectedTableName
+                  ? `Takeaway Slot • ${selectedTableName}`
+                  : 'Takeaway Order'}
             </Text>
           </View>
           {selectedWaiterName && (

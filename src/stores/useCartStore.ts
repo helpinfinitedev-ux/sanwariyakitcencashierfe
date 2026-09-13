@@ -24,7 +24,13 @@ interface CartState {
   removeFromCart: (productId: string) => void;
   updateQuantity: (productId: string, quantity: number) => void;
   updateNotes: (productId: string, notes: string) => void;
-  selectTable: (tableId?: string, tableName?: string, floorId?: string, floorName?: string) => void;
+  selectTable: (
+    tableId?: string,
+    tableName?: string,
+    floorId?: string,
+    floorName?: string,
+    orderType?: OrderType,
+  ) => void;
   selectWaiter: (waiterId?: string, waiterName?: string) => void;
   selectCustomer: (customerId?: string, customerName?: string, customerPhone?: string) => void;
   setDiscount: (value: number, isPercent?: boolean) => void;
@@ -119,14 +125,14 @@ export const useCartStore = create<CartState>((set, get) => ({
       ),
     })),
 
-  selectTable: (tableId, tableName, floorId, floorName) =>
+  selectTable: (tableId, tableName, floorId, floorName, forcedOrderType) =>
     set({
       selectedTableId: tableId,
       selectedTableName: tableName,
       selectedFloorId: floorId,
       selectedFloorName: floorName,
-      // Default to dine-in if table is selected
-      orderType: tableId ? 'dine-in' : 'takeaway',
+      // Use forcedOrderType if provided, otherwise default based on tableId
+      orderType: forcedOrderType || (tableId ? 'dine-in' : 'takeaway'),
     }),
 
   selectWaiter: (waiterId, waiterName) =>
@@ -160,9 +166,9 @@ export const useCartStore = create<CartState>((set, get) => ({
   setOrderType: (orderType) =>
     set((state) => ({
       orderType,
-      // Clear table if shifting to takeaway/delivery
-      selectedTableId: orderType === 'dine-in' ? state.selectedTableId : undefined,
-      selectedTableName: orderType === 'dine-in' ? state.selectedTableName : undefined,
+      // Clear table only if shifting to delivery
+      selectedTableId: orderType === 'delivery' ? undefined : state.selectedTableId,
+      selectedTableName: orderType === 'delivery' ? undefined : state.selectedTableName,
     })),
 
   loadOrderIntoCart: (order) => {

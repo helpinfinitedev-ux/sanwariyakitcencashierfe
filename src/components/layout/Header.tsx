@@ -5,8 +5,15 @@ import { COLORS, TYPOGRAPHY, SPACING, RADIUS } from '@/theme/theme';
 import { useSettingsStore } from '@/stores/useSettingsStore';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { useCashierNotificationStore } from '@/stores/useCashierNotificationStore';
+<<<<<<< HEAD
 import { formatDate, formatTime } from '@/utils/formatters';
 import { MOCK_RESTAURANT } from '@/mock/data';
+=======
+import { formatDate, formatTime, formatCurrency } from '@/utils/formatters';
+import { MOCK_RESTAURANT, MOCK_PRODUCTS, MOCK_CUSTOMERS, MOCK_WAITERS, Order } from '@/mock/data';
+import { Badge } from '@/components/ui/Badge';
+import { printKOT } from '@/services/printService';
+>>>>>>> f7d80fe095a15689f07b5be03c1f3f1c20d1a211
 
 export interface HeaderProps {
   showToastMessage?: (msg: string, type?: 'success' | 'error' | 'info') => void;
@@ -40,6 +47,90 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate }) => {
     if (route && onNavigate) onNavigate(route);
   };
 
+<<<<<<< HEAD
+=======
+  const [time, setTime] = useState(new Date());
+  const [showNotifications, setShowNotifications] = useState(false);
+  const { orders, addOrder, updateOrderStatus, approveAddonOrder, rejectAddonOrder, cancelOrder } =
+    useOrderStore();
+  const { tables, updateTableStatus } = useFloorStore();
+
+  const [rejectDialogVisible, setRejectDialogVisible] = useState(false);
+  const [orderToReject, setOrderToReject] = useState<Order | null>(null);
+  const [rejectionReason, setRejectionReason] = useState('');
+  const [rejectReasonError, setRejectReasonError] = useState(false);
+
+  const pendingOrders = orders.filter(
+    (o) => o.status === 'pending' || o.addonApprovalStatus === 'PENDING_CASHIER_APPROVAL',
+  );
+
+  const handleAcceptOrder = (order: Order) => {
+    const isAddon = order.isAddon || order.addonApprovalStatus === 'PENDING_CASHIER_APPROVAL';
+    if (isAddon) {
+      approveAddonOrder(order.id);
+      if (showToastMessage) {
+        showToastMessage(
+          `Add-on ${order.orderNumber} for ${order.tableNumber || order.tableName || 'Table'} Approved & Merged!`,
+          'success',
+        );
+      }
+    } else {
+      updateOrderStatus(order.id, 'accepted');
+      if ((order.type === 'dine-in' || order.type === 'takeaway') && order.tableId) {
+        updateTableStatus(order.tableId, 'occupied', order.id, order.waiterId);
+      }
+      if (order.type === 'takeaway') {
+        printKOT(order);
+      }
+      if (showToastMessage) {
+        showToastMessage(`Order ${order.orderNumber} accepted!`, 'success');
+      }
+    }
+  };
+
+  const handleRejectOrder = (order: Order) => {
+    setOrderToReject(order);
+    setRejectionReason('');
+    setRejectReasonError(false);
+    setRejectDialogVisible(true);
+  };
+
+  const confirmRejectOrder = () => {
+    if (!orderToReject) return;
+
+    const isAddon =
+      orderToReject.isAddon || orderToReject.addonApprovalStatus === 'PENDING_CASHIER_APPROVAL';
+
+    if (isAddon && !rejectionReason.trim()) {
+      setRejectReasonError(true);
+      if (showToastMessage) {
+        showToastMessage('Rejection reason is required for Add-on requests.', 'error');
+      }
+      return;
+    }
+
+    if (isAddon) {
+      rejectAddonOrder(orderToReject.id, rejectionReason.trim());
+      if (showToastMessage) {
+        showToastMessage(`Add-on ${orderToReject.orderNumber} rejected.`, 'error');
+      }
+    } else {
+      updateOrderStatus(orderToReject.id, 'rejected', rejectionReason);
+      if (orderToReject.tableId) {
+        updateTableStatus(orderToReject.tableId, 'available');
+      }
+      if (showToastMessage) {
+        showToastMessage(`Order ${orderToReject.orderNumber} rejected.`, 'error');
+      }
+    }
+
+    setRejectDialogVisible(false);
+    setRejectionReason('');
+    setRejectReasonError(false);
+    setOrderToReject(null);
+  };
+
+>>>>>>> f7d80fe095a15689f07b5be03c1f3f1c20d1a211
   useEffect(() => {
     const timer = setInterval(() => {
       setTime(new Date());
