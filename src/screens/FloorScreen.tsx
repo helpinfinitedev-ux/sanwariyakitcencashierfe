@@ -4,6 +4,7 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
+  ScrollView,
   useWindowDimensions,
 } from 'react-native-web';
 import { MaterialCommunityIcons } from '@/components/ui/MaterialCommunityIcons';
@@ -37,27 +38,57 @@ export const FloorScreen: React.FC<FloorScreenProps> = ({ onNavigate, showToastM
   const activeFloor = floors.find((f) => f.id === selectedFloorId);
   const activeTables = tables.filter((t) => t.floorId === selectedFloorId);
 
+  const isTakeawaySlot = (table: Table) =>
+    Boolean(
+      table.isTakeaway ||
+      table.floorId?.toLowerCase() === 'takeaway' ||
+      table.name?.toLowerCase().includes('takeaway')
+    );
+
   // Start a new order on a table directly, without the waiter-assignment modal.
   const startOrderForTable = (table: Table) => {
     clearCart();
-    selectTable(table.id, table.name, activeFloor?.id, activeFloor?.name);
+    const isTakeaway = isTakeawaySlot(table);
+    selectTable(
+      table.id,
+      table.name,
+      activeFloor?.id,
+      activeFloor?.name,
+      isTakeaway ? 'takeaway' : 'dine-in'
+    );
     updateTableStatus(table.id, 'occupied');
-    showToastMessage(`Order started for ${table.name}.`);
+    showToastMessage(
+      isTakeaway
+        ? `Takeaway order started for ${table.name}.`
+        : `Order started for ${table.name}.`
+    );
     onNavigate('menu'); // Navigate to Product Menu to add items
   };
 
   const handleTablePress = (table: Table) => {
+    const isTakeaway = isTakeawaySlot(table);
     // If table is occupied or billing, load its active order immediately into the cart
     if (table.status === 'occupied' || table.status === 'billing') {
       const activeOrder = orders.find(
-        (o) => o.tableId === table.id && o.status !== 'completed' && o.status !== 'cancelled' && o.status !== 'pending' && o.status !== 'rejected',
+        (o) =>
+          (o.tableId === table.id || o.tableName === table.name) &&
+          o.status !== 'completed' &&
+          o.status !== 'cancelled' &&
+          o.status !== 'pending' &&
+          o.status !== 'rejected',
       );
       if (activeOrder) {
         loadOrderIntoCart(activeOrder);
         showToastMessage(`Loaded ${table.name} Active Order.`);
       } else {
         // Fallback: create cart session with table
-        selectTable(table.id, table.name, activeFloor?.id, activeFloor?.name);
+        selectTable(
+          table.id,
+          table.name,
+          activeFloor?.id,
+          activeFloor?.name,
+          isTakeaway ? 'takeaway' : 'dine-in'
+        );
       }
     } else if (table.status === 'cleaning') {
       // Reset table status to available
@@ -92,7 +123,7 @@ export const FloorScreen: React.FC<FloorScreenProps> = ({ onNavigate, showToastM
         <View>
           <Text style={[styles.title, { color: colors.textPrimary }]}>Floor Layout Map</Text>
           <Text style={[styles.subTitle, { color: colors.textSecondary }]}>
-            Select floor and tap tables to manage dine-in guests.
+            Select floor or Takeaway section and tap slots/tables to manage orders.
           </Text>
         </View>
 
@@ -110,6 +141,7 @@ export const FloorScreen: React.FC<FloorScreenProps> = ({ onNavigate, showToastM
       <View style={styles.tabRow}>
         {floors.map((floor) => {
           const isActive = selectedFloorId === floor.id;
+          const isTakeawayFloor = floor.id.toLowerCase() === 'takeaway' || floor.name.toLowerCase() === 'takeaway';
           return (
             <TouchableOpacity
               key={floor.id}
@@ -119,13 +151,20 @@ export const FloorScreen: React.FC<FloorScreenProps> = ({ onNavigate, showToastM
                 styles.tabButton,
                 { borderColor: colors.border },
                 isActive && { backgroundColor: colors.primary, borderColor: colors.primary },
+                isTakeawayFloor && !isActive && { borderColor: colors.primary, borderWidth: 1.5 },
               ]}
             >
+              <MaterialCommunityIcons
+                name={isTakeawayFloor ? 'bag-checked' : 'floor-plan'}
+                size={16}
+                color={isActive ? '#FFFFFF' : isTakeawayFloor ? colors.primary : colors.textPrimary}
+                style={{ marginRight: 6 }}
+              />
               <Text
                 style={[
                   styles.tabLabel,
-                  { color: isActive ? '#FFFFFF' : colors.textPrimary },
-                  isActive && { fontWeight: TYPOGRAPHY.weights.bold },
+                  { color: isActive ? '#FFFFFF' : isTakeawayFloor ? colors.primary : colors.textPrimary },
+                  (isActive || isTakeawayFloor) && { fontWeight: TYPOGRAPHY.weights.bold },
                 ]}
               >
                 {floor.name}
@@ -143,67 +182,95 @@ export const FloorScreen: React.FC<FloorScreenProps> = ({ onNavigate, showToastM
           SHADOWS.sm,
         ]}
       >
-        {activeTables.map((table) => {
-          const isTableSelectedInCart = selectedTableId === table.id;
-          const tableColor = getTableColor(table.status);
-          const activeOrder = orders.find(
-            (o) => o.tableId === table.id && o.status !== 'completed' && o.status !== 'cancelled' && o.status !== 'pending' && o.status !== 'rejected',
-          );
+        <ScrollView
+          style={styles.mapScrollView}
+          contentContainerStyle={styles.mapScrollContent}
+          showsVerticalScrollIndicator={true}
+          showsHorizontalScrollIndicator={false}
+        >
+          {activeTables.map((table) => {
+            const isTableSelectedInCart = selectedTableId === table.id;
+            const tableColor = getTableColor(table.status);
+            const isTakeaway = isTakeawaySlot(table);
+            const activeOrder = orders.find(
+              (o) =>
+                (o.tableId === table.id || o.tableName === table.name) &&
+                o.status !== 'completed' &&
+                o.status !== 'cancelled' &&
+                o.status !== 'pending' &&
+                o.status !== 'rejected',
+            );
 
-          return (
-            <TouchableOpacity
-              key={table.id}
-              onPress={() => handleTablePress(table)}
-              activeOpacity={0.7}
-              style={[
-                styles.tableElement,
-                {
-                  left: `${table.x}%`,
-                  top: `${table.y}%`,
-                  width: tableCardSize,
-                  height: tableCardSize,
-                  borderColor: isTableSelectedInCart ? colors.primary : colors.border,
-                  borderWidth: isTableSelectedInCart ? 3 : 1.5,
-                  backgroundColor: colors.surfaceLight,
-                },
-                SHADOWS.md,
-              ]}
-            >
-              {/* Colored status strip */}
-              <View style={[styles.tableStatusIndicator, { backgroundColor: tableColor }]} />
+            return (
+              <TouchableOpacity
+                key={table.id}
+                onPress={() => handleTablePress(table)}
+                activeOpacity={0.7}
+                style={[
+                  styles.tableElement,
+                  {
+                    width: tableCardSize,
+                    height: tableCardSize,
+                    borderColor: isTableSelectedInCart ? colors.primary : colors.border,
+                    borderWidth: isTableSelectedInCart ? 3 : 1.5,
+                    backgroundColor: colors.surfaceLight,
+                  },
+                  SHADOWS.md,
+                ]}
+              >
+                {/* Colored status strip */}
+                <View style={[styles.tableStatusIndicator, { backgroundColor: tableColor }]} />
 
-              <Text style={[styles.tableLabelText, { color: colors.textPrimary }]}>
-                {table.name}
+                {isTakeaway && (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 2 }}>
+                    <MaterialCommunityIcons name="bag-checked" size={12} color={colors.primary} />
+                    <Text
+                      style={{
+                        fontSize: 9,
+                        fontWeight: '700',
+                        color: colors.primary,
+                        marginLeft: 3,
+                        letterSpacing: 0.5,
+                      }}
+                    >
+                      TAKEAWAY
+                    </Text>
+                  </View>
+                )}
+
+                <Text style={[styles.tableLabelText, { color: colors.textPrimary }]}>
+                  {table.name}
+                </Text>
+
+                <View style={styles.tableCapacityRow}>
+                  <MaterialCommunityIcons
+                    name={isTakeaway ? 'bag-personal-outline' : 'account-group'}
+                    size={12}
+                    color={colors.textSecondary}
+                  />
+                  <Text style={[styles.tableCapacityText, { color: colors.textSecondary }]}>
+                    {isTakeaway ? 'Counter Slot' : `${table.capacity} Pax`}
+                  </Text>
+                </View>
+
+                {activeOrder && (
+                  <Text style={[styles.tableOrderAmount, { color: colors.primary }]}>
+                    {formatCurrency(activeOrder.total)}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            );
+          })}
+
+          {activeTables.length === 0 && (
+            <View style={styles.emptyMapContainer}>
+              <MaterialCommunityIcons name="floor-plan" size={48} color={colors.textMuted} />
+              <Text style={[styles.emptyMapTitle, { color: colors.textSecondary }]}>
+                No Tables Added
               </Text>
-
-              <View style={styles.tableCapacityRow}>
-                <MaterialCommunityIcons
-                  name="account-group"
-                  size={12}
-                  color={colors.textSecondary}
-                />
-                <Text style={[styles.tableCapacityText, { color: colors.textSecondary }]}>
-                  {table.capacity} Pax
-                </Text>
-              </View>
-
-              {activeOrder && (
-                <Text style={[styles.tableOrderAmount, { color: colors.primary }]}>
-                  {formatCurrency(activeOrder.total)}
-                </Text>
-              )}
-            </TouchableOpacity>
-          );
-        })}
-
-        {activeTables.length === 0 && (
-          <View style={styles.emptyMapContainer}>
-            <MaterialCommunityIcons name="floor-plan" size={48} color={colors.textMuted} />
-            <Text style={[styles.emptyMapTitle, { color: colors.textSecondary }]}>
-              No Tables Added
-            </Text>
-          </View>
-        )}
+            </View>
+          )}
+        </ScrollView>
       </View>
     </View>
   );
@@ -282,11 +349,24 @@ const styles = StyleSheet.create({
     flex: 1,
     borderRadius: RADIUS.lg,
     borderWidth: 1,
-    position: 'relative', // essential for absolute table placement
     overflow: 'hidden',
   },
+  mapScrollView: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+  },
+  mapScrollContent: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: SPACING.lg,
+    padding: SPACING.lg,
+    paddingBottom: SPACING.xxl + SPACING.lg,
+    alignContent: 'flex-start',
+    alignItems: 'flex-start',
+    flexGrow: 1,
+  },
   tableElement: {
-    position: 'absolute',
     borderRadius: RADIUS.md,
     borderWidth: 1.5,
     justifyContent: 'center',
@@ -321,6 +401,8 @@ const styles = StyleSheet.create({
   },
   emptyMapContainer: {
     flex: 1,
+    width: '100%',
+    minHeight: 250,
     justifyContent: 'center',
     alignItems: 'center',
   },

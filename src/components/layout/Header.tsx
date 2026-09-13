@@ -10,6 +10,7 @@ import { useCashierNotificationStore } from '@/stores/useCashierNotificationStor
 import { formatDate, formatTime, formatCurrency } from '@/utils/formatters';
 import { MOCK_RESTAURANT, MOCK_PRODUCTS, MOCK_CUSTOMERS, MOCK_WAITERS, Order } from '@/mock/data';
 import { Badge } from '@/components/ui/Badge';
+import { printKOT } from '@/services/printService';
 
 export interface HeaderProps {
   showToastMessage?: (msg: string, type?: 'success' | 'error' | 'info') => void;
@@ -63,8 +64,11 @@ export const Header: React.FC<HeaderProps> = ({ showToastMessage, onNavigate }) 
       }
     } else {
       updateOrderStatus(order.id, 'accepted');
-      if (order.type === 'dine-in' && order.tableId) {
+      if ((order.type === 'dine-in' || order.type === 'takeaway') && order.tableId) {
         updateTableStatus(order.tableId, 'occupied', order.id, order.waiterId);
+      }
+      if (order.type === 'takeaway') {
+        printKOT(order);
       }
       if (showToastMessage) {
         showToastMessage(`Order ${order.orderNumber} accepted!`, 'success');
@@ -100,7 +104,7 @@ export const Header: React.FC<HeaderProps> = ({ showToastMessage, onNavigate }) 
       }
     } else {
       updateOrderStatus(orderToReject.id, 'rejected', rejectionReason);
-      if (orderToReject.type === 'dine-in' && orderToReject.tableId) {
+      if (orderToReject.tableId) {
         updateTableStatus(orderToReject.tableId, 'available');
       }
       if (showToastMessage) {

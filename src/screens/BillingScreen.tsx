@@ -48,6 +48,7 @@ export const BillingScreen: React.FC<BillingScreenProps> = ({ onNavigate, showTo
     selectedCustomerPhone,
     discount,
     editingOrderId,
+    orderType,
     clearCart,
     getCalculations,
   } = useCartStore();
@@ -98,7 +99,7 @@ export const BillingScreen: React.FC<BillingScreenProps> = ({ onNavigate, showTo
     discount: discountAmount,
     total,
     status: 'billing',
-    type: selectedTableId ? 'dine-in' : 'takeaway',
+    type: orderType || (selectedTableId ? 'dine-in' : 'takeaway'),
     paymentMethod: payMethod,
     isAddon: false,
     createdAt: new Date().toISOString(),
@@ -135,7 +136,7 @@ export const BillingScreen: React.FC<BillingScreenProps> = ({ onNavigate, showTo
     setWhatsAppModalVisible(true);
   };
 
-  const handleCompleteTransaction = () => {
+  const handleCompleteTransaction = async () => {
     if (cartItems.length === 0) {
       showToastMessage('Cannot finalize an empty bill.', 'error');
       return;
@@ -172,40 +173,50 @@ export const BillingScreen: React.FC<BillingScreenProps> = ({ onNavigate, showTo
       discount: discountAmount,
       total,
       status: 'completed',
-      type: selectedTableId ? 'dine-in' : 'takeaway',
+      type: orderType || (selectedTableId ? 'dine-in' : 'takeaway'),
       paymentMethod: payMethod,
       isAddon: false,
       createdAt: new Date().toISOString(),
     };
 
-    // Store KOT finalized transition
-    if (isEditing) {
-      completeOrder(orderId, payMethod);
-      showToastMessage(`Invoice Completed: ${orderNumber}`, 'success');
-    } else {
-      addOrder(finalOrder);
-      completeOrder(orderId, payMethod);
-      showToastMessage(`Direct Invoice Completed: ${orderNumber}`, 'success');
-    }
-
-    // Update sales metrics in store
-    addOrderToReport(finalOrder);
-
-    // Free the table. `selectedTableId` holds the table *number* (orders track
-    // tables by number), so resolve the real floor-table id before clearing.
-    if (selectedTableId) {
-      const floorTable = useFloorStore
-        .getState()
-        .tables.find((t) => t.id === selectedTableId || t.tableNo === selectedTableId);
-      if (floorTable) {
-        updateTableStatus(floorTable.id, 'available');
+    try {
+      // Store KOT finalized transition
+      if (isEditing) {
+        await completeOrder(orderId, payMethod);
+        showToastMessage(`Invoice Completed: ${orderNumber}`, 'success');
+      } else {
+        addOrder(finalOrder);
+        await completeOrder(orderId, payMethod);
+        showToastMessage(`Direct Invoice Completed: ${orderNumber}`, 'success');
       }
-    }
 
-    // Clear cart and show post-payment settlement modal
-    clearCart();
-    setSettledOrder(finalOrder);
-    setSuccessModalVisible(true);
+      // Update sales metrics in store
+      addOrderToReport(finalOrder);
+
+      // Free the table or Takeaway slot if assigned
+      const targetTableId = selectedTableId;
+      const targetTableName = selectedTableName;
+      if (targetTableId || targetTableName) {
+        const floorTable = useFloorStore
+          .getState()
+          .tables.find(
+            (t) =>
+              (targetTableId && (t.id === targetTableId || t.tableNo === targetTableId || t.name === targetTableId)) ||
+              (targetTableName && (t.name === targetTableName || t.tableNo === targetTableName || t.id === targetTableName)),
+          );
+        if (floorTable) {
+          updateTableStatus(floorTable.id, 'available');
+        }
+      }
+
+      // Clear cart and show post-payment settlement modal
+      clearCart();
+      setSettledOrder(finalOrder);
+      setSuccessModalVisible(true);
+    } catch (err: any) {
+      console.error('Failed to complete transaction:', err);
+      showToastMessage('Failed to complete transaction. Table retained.', 'error');
+    }
   };
 
   const handlePostPaymentPrint = () => {

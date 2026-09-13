@@ -254,15 +254,113 @@ export const printBill = async (
 };
 
 /**
- * Service to simulate KOT (Kitchen Order Ticket) printing.
+ * Builds an 80mm-formatted HTML KOT (Kitchen Order Ticket) for thermal printer output.
+ */
+export const buildKOTHtml = (
+  order: Order,
+  restaurant: Restaurant = MOCK_RESTAURANT,
+): string => {
+  const dateObj = order.createdAt ? new Date(order.createdAt) : new Date();
+  const dateStr = formatDate(dateObj);
+  const timeStr = formatTime(dateObj);
+  const isTakeaway = order.type === 'takeaway';
+
+  const itemRows = order.items
+    .map(
+      (it) =>
+        `<tr>
+          <td class="qty">${it.quantity}&nbsp;&times;</td>
+          <td class="name">
+            ${escapeHtml(it.product.name)}
+            ${it.notes ? `<div class="notes">*** NOTE: ${escapeHtml(it.notes)} ***</div>` : ''}
+          </td>
+        </tr>`,
+    )
+    .join('');
+
+  return `<!doctype html><html><head><meta charset="utf-8"><title>KOT ${escapeHtml(
+    order.orderNumber,
+  )}</title><style>
+    @page { size: 80mm auto; margin: 0; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; }
+    body { width: 80mm; padding: 4mm 3mm; font-family: 'Courier New', ui-monospace, monospace; font-size: 13px; font-weight: 700; color: #000; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .c { text-align: center; }
+    .b { font-weight: 800; }
+    .lg { font-size: 16px; }
+    .xl { font-size: 20px; }
+    .box { border: 2px solid #000; padding: 4px 6px; margin: 5px 0; text-align: center; }
+    .muted { font-size: 11px; font-weight: 700; }
+    .notes { font-size: 11px; font-weight: 800; margin-top: 1px; }
+    .row { display: flex; justify-content: space-between; }
+    hr { border: none; border-top: 2px dashed #000; margin: 6px 0; }
+    table { width: 100%; border-collapse: collapse; }
+    td { vertical-align: top; padding: 3px 0; }
+    .qty { width: 18%; font-weight: 800; font-size: 14px; }
+    .name { width: 82%; font-size: 13px; font-weight: 800; }
+  </style></head><body>
+    <div class="c b lg">${escapeHtml(restaurant.name.toUpperCase())}</div>
+    <div class="c muted">${escapeHtml(restaurant.branch)}</div>
+    <hr/>
+    <div class="c b xl">KOT</div>
+    <div class="c b lg">Order #${escapeHtml(order.orderNumber)}</div>
+    <hr/>
+    ${isTakeaway ? `
+    <div class="box b lg">
+      TAKEAWAY
+      ${order.tableName ? `<div style="font-size: 14px; font-weight: 800; margin-top: 2px;">${escapeHtml(order.tableName)}</div>` : ''}
+    </div>` : `
+    <div class="box b lg">
+      DINE-IN
+      <div style="font-size: 14px; font-weight: 800; margin-top: 2px;">${escapeHtml(order.tableName || 'Table')}</div>
+    </div>`}
+    ${order.customerName ? `<div>Customer: ${escapeHtml(order.customerName)}</div>` : ''}
+    ${order.waiterName ? `<div>Waiter: ${escapeHtml(order.waiterName)}</div>` : ''}
+    <hr/>
+    <table>
+      ${itemRows}
+    </table>
+    <hr/>
+    <div class="row">
+      <span>Time: ${escapeHtml(timeStr)}</span>
+      <span>Date: ${escapeHtml(dateStr)}</span>
+    </div>
+    <hr/>
+    <div class="c muted">*** KITCHEN COPY ***</div>
+  </body></html>`;
+};
+
+/**
+ * Prints KOT (Kitchen Order Ticket) directly through the thermal printer pipeline.
  */
 export const printKOT = async (
   order: Order,
+  restaurant: Restaurant = MOCK_RESTAURANT,
 ): Promise<{ success: boolean; message: string }> => {
-  await mockDelay(400);
+  const html = buildKOTHtml(order, restaurant);
+  const printed = await printHtml(html);
+
+  // Log activity event
+  useActivityLogStore.getState().logEvent({
+    type: 'kot.printed',
+    orderId: order.id,
+    orderNumber: order.orderNumber,
+    tableId: order.tableId,
+    tableName: order.tableName,
+    customerId: order.customerId,
+    customerName: order.customerName,
+    payload: {
+      orderType: order.type,
+      printer: 'Default 80mm Thermal Printer',
+      paperWidth: '80mm',
+      itemsCount: order.items.length,
+    },
+  });
 
   return {
-    success: true,
-    message: `KOT for ${order.orderNumber} sent to Kitchen Printer.`,
+    success: printed,
+    message: printed
+      ? `KOT for ${order.orderNumber} sent to thermal printer.`
+      : `Failed to print KOT for ${order.orderNumber}.`,
   };
 };

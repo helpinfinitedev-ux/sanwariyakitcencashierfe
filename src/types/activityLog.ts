@@ -5,6 +5,7 @@ export type ActivityEventType =
   | 'order.cancelled'
   | 'payment.completed'
   | 'bill.printed'
+  | 'kot.printed'
   | 'bill.sentWhatsApp'
   | 'table.statusChanged'
   | 'customer.linked'

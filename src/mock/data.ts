@@ -27,6 +27,7 @@ export interface Table {
   // Positioning coordinates for visual interactive floor layout (15" to 22" screens)
   x: number;
   y: number;
+  isTakeaway?: boolean;
 }
 
 export interface Waiter {

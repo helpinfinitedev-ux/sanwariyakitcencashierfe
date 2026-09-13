@@ -56,16 +56,29 @@ const mapBackendOrderToPosOrder = (order: any): Order => {
   const waiterId = order.waiter?._id || order.waiter || '';
   const items = (order.items || []).map(mapBackendOrderItemToPosOrderItem);
 
+  const rawTableNo = order.tableNo ? String(order.tableNo) : '';
+  const isTakeaway = Boolean(
+    order.type === 'takeaway' ||
+    rawTableNo.toLowerCase().includes('takeaway') ||
+    rawTableNo.toLowerCase().startsWith('ta-')
+  );
+
+  const tableName = order.tableNo
+    ? (rawTableNo.toLowerCase().includes('table') || rawTableNo.toLowerCase().includes('takeaway')
+        ? rawTableNo
+        : `Table ${rawTableNo}`)
+    : (isTakeaway ? 'Takeaway' : 'Table 1');
+
   return {
     id: order._id || order.id,
     orderId: order._id || order.id,
     orderNumber: order.liveOrderId || 'KOT-000',
-    tableId: order.tableNo || '1',
-    tableName: `Table ${order.tableNo || '1'}`,
-    tableNumber: order.tableNo || '1',
+    tableId: order.tableNo || (isTakeaway ? 'takeaway' : '1'),
+    tableName,
+    tableNumber: order.tableNo || (isTakeaway ? 'takeaway' : '1'),
     waiterId,
     waiterName,
-    customerName: order.customerName || `Table ${order.tableNo}`,
+    customerName: order.customerName || (isTakeaway ? 'Takeaway Customer' : `Table ${order.tableNo}`),
     customerId: 'cust-1',
     items,
     subtotal: order.subtotal || 0,
@@ -73,7 +86,7 @@ const mapBackendOrderToPosOrder = (order: any): Order => {
     discount: order.discount || 0,
     total: order.totalPrice || 0,
     status: mapBackendStatusToPosStatus(order.status),
-    type: 'dine-in',
+    type: isTakeaway ? 'takeaway' : (order.type || 'dine-in'),
     createdAt: order.createdAt || new Date().toISOString(),
     rejectionReason: order.rejectionReason,
   };
@@ -179,7 +192,7 @@ export const useOrderStore = create<OrderState>((set, get) => ({
         })),
         customerName: order.customerName,
         customerPhone: order.customerPhone,
-        tableNo: order.type === 'dine-in' ? order.tableName : undefined,
+        tableNo: order.tableName || (order.type === 'takeaway' ? 'Takeaway' : undefined),
         type: order.type,
         discount: order.discount,
       };
@@ -326,52 +339,75 @@ export const useOrderStore = create<OrderState>((set, get) => ({
   },
 
   completeOrder: async (orderId, paymentMethod) => {
+    // Capture the table this order occupies before completing it.
+    const completing = get().orders.find((o) => o.id === orderId);
+
     try {
-      // Capture the table this order occupies before completing it.
-      const completing = get().orders.find((o) => o.id === orderId);
-
       await api.post(`/orders/${orderId}/complete`);
+    } catch (err: any) {
+      console.warn('Backend /orders/:id/complete API error or mock offline:', err?.message);
+    }
 
-      // The backend frees the table on completion (freeTableIfIdle). Free it
-      // locally too so the floor map updates immediately, then reconcile from
-      // the backend. This runs regardless of how billing was triggered.
-      if (completing?.tableId) {
-        const floorTables = useFloorStore.getState().tables;
-        const floorTable = floorTables.find(
-          (t) =>
-            t.id === completing.tableId ||
-            t.tableNo === completing.tableId ||
-            t.name === completing.tableName,
-        );
-        if (floorTable) {
-          useFloorStore.getState().updateTableStatus(floorTable.id, 'available');
-        }
+    // Optimistically update order status to completed so Active Orders immediately removes it
+    set((state) => ({
+      orders: state.orders.map((o) =>
+        o.id === orderId
+          ? {
+              ...o,
+              status: 'completed' as OrderStatus,
+              paymentMethod: paymentMethod || o.paymentMethod || 'cash',
+            }
+          : o,
+      ),
+    }));
+
+    // The backend frees the table on completion (freeTableIfIdle). Free it
+    // locally too so the floor map updates immediately, then reconcile from
+    // the backend. Only run if a table/slot was assigned to the order.
+    const targetTableId = completing?.tableId;
+    const targetTableName = completing?.tableName;
+    if (targetTableId || targetTableName) {
+      const floorTables = useFloorStore.getState().tables;
+      const floorTable = floorTables.find(
+        (t) =>
+          (targetTableId && (t.id === targetTableId || t.tableNo === targetTableId || t.name === targetTableId)) ||
+          (targetTableName && (t.name === targetTableName || t.tableNo === targetTableName || t.id === targetTableName)),
+      );
+      if (floorTable) {
+        useFloorStore.getState().updateTableStatus(floorTable.id, 'available');
       }
+    }
 
+    try {
       await get().fetchOrders();
-      await useFloorStore.getState().fetchTables();
+    } catch {
+      // Retain optimistic state if offline
+    }
 
-      const order = get().orders.find((o) => o.id === orderId);
-      if (order) {
-        useActivityLogStore.getState().logEvent({
-          type: 'payment.completed',
-          orderId: order.id,
-          orderNumber: order.orderNumber,
-          tableId: order.tableId,
-          tableName: order.tableName,
-          customerId: order.customerId,
-          customerName: order.customerName,
-          payload: {
-            paymentMethod: paymentMethod || order.paymentMethod || 'cash',
-            amount: order.total,
-            subtotal: order.subtotal,
-            discount: order.discount,
-            gst: order.gst,
-          },
-        });
-      }
-    } catch (err) {
-      console.error('Failed to complete order billing:', err);
+    try {
+      await useFloorStore.getState().fetchTables(get().orders);
+    } catch {
+      // Retain optimistic table state if offline
+    }
+
+    const order = get().orders.find((o) => o.id === orderId) || completing;
+    if (order) {
+      useActivityLogStore.getState().logEvent({
+        type: 'payment.completed',
+        orderId: order.id,
+        orderNumber: order.orderNumber,
+        tableId: order.tableId,
+        tableName: order.tableName,
+        customerId: order.customerId,
+        customerName: order.customerName,
+        payload: {
+          paymentMethod: paymentMethod || order.paymentMethod || 'cash',
+          amount: order.total,
+          subtotal: order.subtotal,
+          discount: order.discount,
+          gst: order.gst,
+        },
+      });
     }
   },
 

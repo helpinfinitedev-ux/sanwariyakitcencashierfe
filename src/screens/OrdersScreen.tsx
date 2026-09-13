@@ -21,6 +21,7 @@ import { formatCurrency, formatDate, formatTime } from '@/utils/formatters';
 import { Order } from '@/mock/data';
 import { ReceiptPreviewModal } from '@/components/ui/ReceiptPreviewModal';
 import { WhatsAppModal } from '@/components/ui/WhatsAppModal';
+import { printKOT } from '@/services/printService';
 
 interface OrdersScreenProps {
   onNavigate: (route: string) => void;
@@ -89,6 +90,13 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({ onNavigate, showToas
       setDetailModalVisible(false);
       showToastMessage(`Loaded order ${selectedOrder.orderNumber} for editing.`, 'info');
       onNavigate('menu');
+    }
+  };
+
+  const handlePrintKOT = async () => {
+    if (selectedOrder) {
+      const res = await printKOT(selectedOrder);
+      showToastMessage(res.message, res.success ? 'success' : 'error');
     }
   };
 
@@ -208,22 +216,32 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({ onNavigate, showToas
                 {/* Meta details cards */}
                 <View style={styles.metaRow}>
                   <DetailBadge
-                    label={selectedOrder.type.toUpperCase()}
-                    icon="shopping"
+                    label={
+                      selectedOrder.type === 'takeaway'
+                        ? 'Order Type: TAKEAWAY'
+                        : `Order Type: ${selectedOrder.type.toUpperCase()}`
+                    }
+                    icon={selectedOrder.type === 'takeaway' ? 'bag-checked' : 'shopping'}
                     color={colors.primary}
                     colors={colors}
                   />
                   <DetailBadge
                     label={
-                      selectedOrder.tableName ? `Table: ${selectedOrder.tableName}` : 'Takeaway'
+                      selectedOrder.type === 'takeaway'
+                        ? selectedOrder.tableName
+                          ? `Takeaway Slot: ${selectedOrder.tableName}`
+                          : 'Takeaway Counter'
+                        : selectedOrder.tableName
+                          ? `Table: ${selectedOrder.tableName}`
+                          : 'Direct Order'
                     }
-                    icon="table-chair"
+                    icon={selectedOrder.type === 'takeaway' ? 'bag-personal-outline' : 'table-chair'}
                     color={colors.secondary}
                     colors={colors}
                   />
                   {selectedOrder.waiterName && (
                     <DetailBadge
-                      label={`Waiter: ${selectedOrder.waiterName}`}
+                      label={`Staff: ${selectedOrder.waiterName}`}
                       icon="account-tie"
                       color={colors.textSecondary}
                       colors={colors}
@@ -306,6 +324,13 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({ onNavigate, showToas
               <View style={[styles.modalActionsRow, { borderTopColor: colors.border }]}>
                  {selectedOrder.status !== 'completed' && selectedOrder.status !== 'cancelled' && selectedOrder.status !== 'rejected' ? (
                   <>
+                    <Button
+                      label="Print KOT"
+                      variant="outline"
+                      icon="printer"
+                      onPress={handlePrintKOT}
+                      style={{ marginRight: SPACING.xs }}
+                    />
                     <Button
                       label="Edit Order"
                       variant="secondary"
