@@ -230,7 +230,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
           >
             <MaterialCommunityIcons
               name="bag-checked"
-              size={16}
+              size={14}
               color={orderType === 'takeaway' ? '#FFF' : colors.textPrimary}
             />
             <Text
@@ -249,7 +249,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
           <View style={styles.metaItem}>
             <MaterialCommunityIcons
               name={orderType === 'takeaway' ? 'bag-checked' : 'floor-plan'}
-              size={16}
+              size={14}
               color={orderType === 'takeaway' ? colors.primary : colors.textMuted}
             />
             <Text style={[styles.metaText, { color: colors.textPrimary }]}>
@@ -264,7 +264,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
           </View>
           {selectedWaiterName && (
             <View style={styles.metaItem}>
-              <MaterialCommunityIcons name="account-tie" size={16} color={colors.textMuted} />
+              <MaterialCommunityIcons name="account-tie" size={14} color={colors.textMuted} />
               <Text style={[styles.metaText, { color: colors.textPrimary }]}>
                 {selectedWaiterName}
               </Text>
@@ -277,13 +277,13 @@ export const RightPanel: React.FC<RightPanelProps> = ({
           onPress={() => setCustomerModalVisible(true)}
           style={[styles.customerRow, { backgroundColor: colors.surfaceLight }]}
         >
-          <MaterialCommunityIcons name="account-circle-outline" size={20} color={colors.primary} />
+          <MaterialCommunityIcons name="account-circle-outline" size={16} color={colors.primary} />
           <Text style={[styles.customerText, { color: colors.textPrimary }]} numberOfLines={1}>
             {selectedCustomerName
               ? `${selectedCustomerName} (${selectedCustomerPhone})`
               : 'Walk-In Customer'}
           </Text>
-          <MaterialCommunityIcons name="chevron-down" size={20} color={colors.textMuted} />
+          <MaterialCommunityIcons name="chevron-down" size={16} color={colors.textMuted} />
         </TouchableOpacity>
       </View>
 
@@ -334,7 +334,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                     onPress={() => updateQuantity(item.product.id, item.quantity - 1)}
                     style={[styles.qtyBtn, { backgroundColor: colors.surfaceLight }]}
                   >
-                    <MaterialCommunityIcons name="minus" size={16} color={colors.textPrimary} />
+                    <MaterialCommunityIcons name="minus" size={14} color={colors.textPrimary} />
                   </TouchableOpacity>
                   <Text style={[styles.qtyText, { color: colors.textPrimary }]}>
                     {item.quantity}
@@ -343,7 +343,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                     onPress={() => addToCart(item.product, 1)}
                     style={[styles.qtyBtn, { backgroundColor: colors.surfaceLight }]}
                   >
-                    <MaterialCommunityIcons name="plus" size={16} color={colors.textPrimary} />
+                    <MaterialCommunityIcons name="plus" size={14} color={colors.textPrimary} />
                   </TouchableOpacity>
                 </View>
 
@@ -354,7 +354,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                   >
                     <MaterialCommunityIcons
                       name="pencil-outline"
-                      size={20}
+                      size={18}
                       color={colors.textSecondary}
                     />
                   </TouchableOpacity>
@@ -364,7 +364,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                   >
                     <MaterialCommunityIcons
                       name="trash-can-outline"
-                      size={20}
+                      size={18}
                       color={colors.error}
                     />
                   </TouchableOpacity>
@@ -421,6 +421,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
           <Button
             label="Clear"
             variant="outline"
+            size="sm"
             onPress={() => setConfirmClearVisible(true)}
             disabled={cartItems.length === 0}
             style={styles.clearBtn}
@@ -428,6 +429,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
           <Button
             label="Checkout"
             variant="primary"
+            size="sm"
             icon="credit-card-outline"
             onPress={handleCollectPayment}
             disabled={cartItems.length === 0}
@@ -632,7 +634,8 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
   },
   section: {
-    padding: SPACING.md,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: SPACING.xs,
   },
   headerSection: {
     borderBottomWidth: 1,
@@ -640,55 +643,56 @@ const styles = StyleSheet.create({
   orderTypeRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: SPACING.sm,
+    marginBottom: 6,
   },
   typeTab: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 6,
-    paddingHorizontal: SPACING.md,
+    paddingVertical: 4,
+    paddingHorizontal: SPACING.sm,
     borderWidth: 1,
     borderRadius: RADIUS.sm,
     alignSelf: 'flex-start',
-    height: 34,
+    height: 28,
   },
   typeLabel: {
-    fontSize: TYPOGRAPHY.sizes.xs,
+    fontSize: 11,
     fontWeight: TYPOGRAPHY.weights.semibold,
-    marginLeft: SPACING.xs,
+    marginLeft: 4,
   },
   metaRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: SPACING.sm,
+    marginBottom: 6,
   },
   metaItem: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   metaText: {
-    fontSize: TYPOGRAPHY.sizes.sm,
+    fontSize: 11,
     fontWeight: TYPOGRAPHY.weights.bold,
-    marginLeft: SPACING.xs,
+    marginLeft: 4,
   },
   customerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 6,
+    paddingVertical: 4,
     paddingHorizontal: SPACING.sm,
     borderRadius: RADIUS.sm,
-    height: 40,
+    height: 30,
   },
   customerText: {
-    fontSize: TYPOGRAPHY.sizes.xs,
+    fontSize: 11,
     flex: 1,
-    marginLeft: SPACING.xs,
+    marginLeft: 4,
   },
   cartItemsScroll: {
     flex: 1,
+    minHeight: '70%',
   },
   cartItemsContent: {
     paddingBottom: SPACING.md,
@@ -710,7 +714,8 @@ const styles = StyleSheet.create({
     lineHeight: TYPOGRAPHY.lineHeights.xs,
   },
   cartItem: {
-    padding: SPACING.md,
+    paddingVertical: SPACING.xs,
+    paddingHorizontal: SPACING.sm,
     borderBottomWidth: 1,
   },
   cartItemHeader: {
@@ -719,41 +724,41 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   cartItemName: {
-    fontSize: TYPOGRAPHY.sizes.sm,
+    fontSize: 13,
     fontWeight: TYPOGRAPHY.weights.semibold,
     flex: 1,
     paddingRight: SPACING.sm,
   },
   cartItemPrice: {
-    fontSize: TYPOGRAPHY.sizes.sm,
+    fontSize: 13,
     fontWeight: TYPOGRAPHY.weights.bold,
   },
   cartItemNotesText: {
-    fontSize: TYPOGRAPHY.sizes.xs,
-    marginTop: 4,
+    fontSize: 11,
+    marginTop: 2,
     fontStyle: 'italic',
   },
   cartItemFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: SPACING.sm,
+    marginTop: 6,
   },
   qtyContainer: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   qtyBtn: {
-    width: 28,
-    height: 28,
+    width: 24,
+    height: 24,
     borderRadius: RADIUS.xs,
     justifyContent: 'center',
     alignItems: 'center',
   },
   qtyText: {
-    fontSize: TYPOGRAPHY.sizes.md,
+    fontSize: TYPOGRAPHY.sizes.sm,
     fontWeight: TYPOGRAPHY.weights.bold,
-    marginHorizontal: SPACING.md,
+    marginHorizontal: SPACING.sm,
   },
   itemActions: {
     flexDirection: 'row',
@@ -761,20 +766,21 @@ const styles = StyleSheet.create({
   },
   itemActionIcon: {
     padding: 4,
-    marginLeft: SPACING.sm,
+    marginLeft: SPACING.xs,
   },
   calculationsContainer: {
     borderTopWidth: 1,
-    padding: SPACING.md,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: SPACING.xs,
   },
   calcRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: SPACING.xs,
+    marginBottom: 2,
   },
   calcLabel: {
-    fontSize: TYPOGRAPHY.sizes.sm,
+    fontSize: 12,
   },
   discountLabelCol: {
     flexDirection: 'row',
@@ -792,26 +798,27 @@ const styles = StyleSheet.create({
     marginLeft: 2,
   },
   calcValue: {
-    fontSize: TYPOGRAPHY.sizes.sm,
+    fontSize: 12,
     fontWeight: TYPOGRAPHY.weights.medium,
   },
   totalRow: {
     borderTopWidth: 1,
-    marginTop: SPACING.xs,
-    paddingTop: SPACING.sm,
+    marginTop: 2,
+    paddingTop: SPACING.xs,
     marginBottom: 0,
   },
   totalLabel: {
-    fontSize: TYPOGRAPHY.sizes.md,
+    fontSize: TYPOGRAPHY.sizes.sm,
     fontWeight: TYPOGRAPHY.weights.bold,
   },
   totalValue: {
-    fontSize: TYPOGRAPHY.sizes.xl,
+    fontSize: TYPOGRAPHY.sizes.md,
     fontWeight: TYPOGRAPHY.weights.bold,
   },
   footerContainer: {
     borderTopWidth: 1,
-    padding: SPACING.md,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: SPACING.xs,
   },
   footerRow: {
     flexDirection: 'row',
@@ -820,11 +827,11 @@ const styles = StyleSheet.create({
   },
   clearBtn: {
     flex: 0.32,
-    minHeight: 52,
+    minHeight: 40,
   },
   checkoutBtn: {
     flex: 0.68,
-    minHeight: 52,
+    minHeight: 40,
   },
   // Notes Modal Overlay
   overlay: {
