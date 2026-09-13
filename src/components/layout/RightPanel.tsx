@@ -417,31 +417,23 @@ export const RightPanel: React.FC<RightPanelProps> = ({
 
       {/* Action Buttons Footer */}
       <View style={[styles.footerContainer, { borderTopColor: colors.border }]}>
-        <View style={styles.footerRow1}>
+        <View style={styles.footerRow}>
           <Button
             label="Clear"
             variant="outline"
             onPress={() => setConfirmClearVisible(true)}
             disabled={cartItems.length === 0}
-            style={styles.halfBtn}
+            style={styles.clearBtn}
           />
           <Button
-            label={editingOrderId ? 'Update KOT' : 'Send KOT'}
-            variant="secondary"
-            icon="silverware-clean"
-            onPress={handlePlaceOrder}
+            label="Checkout"
+            variant="primary"
+            icon="credit-card-outline"
+            onPress={handleCollectPayment}
             disabled={cartItems.length === 0}
-            style={styles.halfBtn}
+            style={styles.checkoutBtn}
           />
         </View>
-        <Button
-          label="Collect Payment & Checkout"
-          variant="primary"
-          icon="credit-card-outline"
-          onPress={handleCollectPayment}
-          disabled={cartItems.length === 0}
-          style={styles.checkoutBtn}
-        />
       </View>
 
       {/* Modals & Dialog Overlays */}
@@ -651,18 +643,18 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.sm,
   },
   typeTab: {
-    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: SPACING.xs,
+    paddingVertical: 6,
+    paddingHorizontal: SPACING.md,
     borderWidth: 1,
     borderRadius: RADIUS.sm,
-    marginHorizontal: 2,
-    height: 56,
+    alignSelf: 'flex-start',
+    height: 34,
   },
   typeLabel: {
-    fontSize: TYPOGRAPHY.sizes.sm,
+    fontSize: TYPOGRAPHY.sizes.xs,
     fontWeight: TYPOGRAPHY.weights.semibold,
     marginLeft: SPACING.xs,
   },
@@ -685,13 +677,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: SPACING.xs,
+    paddingVertical: 6,
     paddingHorizontal: SPACING.sm,
     borderRadius: RADIUS.sm,
-    height: 56,
+    height: 40,
   },
   customerText: {
-    fontSize: TYPOGRAPHY.sizes.sm,
+    fontSize: TYPOGRAPHY.sizes.xs,
     flex: 1,
     marginLeft: SPACING.xs,
   },
@@ -821,18 +813,18 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     padding: SPACING.md,
   },
-  footerRow1: {
+  footerRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: SPACING.sm,
+    alignItems: 'center',
+    gap: SPACING.sm,
   },
-  halfBtn: {
-    flex: 0.48,
-    minHeight: 56,
+  clearBtn: {
+    flex: 0.32,
+    minHeight: 52,
   },
   checkoutBtn: {
-    width: '100%',
-    minHeight: 56,
+    flex: 0.68,
+    minHeight: 52,
   },
   // Notes Modal Overlay
   overlay: {
