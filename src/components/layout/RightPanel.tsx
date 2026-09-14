@@ -80,6 +80,12 @@ export const RightPanel: React.FC<RightPanelProps> = ({
   // Dialog state
   const [confirmClearVisible, setConfirmClearVisible] = useState(false);
 
+  // Measured height of the pinned bottom bar (totals + action buttons). Used to
+  // pad the scrollable items area so the last item can always scroll clear of
+  // the absolutely-positioned bar. Seeded with a sensible estimate for the
+  // first paint, then corrected via onLayout.
+  const [bottomBarHeight, setBottomBarHeight] = useState(170);
+
   const handlePlaceOrder = () => {
     if (cartItems.length === 0) {
       showToastMessage('Cart is empty. Add products first.');
@@ -288,7 +294,11 @@ export const RightPanel: React.FC<RightPanelProps> = ({
       </View>
 
       {/* Cart Items List */}
-      <ScrollView style={styles.cartItemsScroll} contentContainerStyle={styles.cartItemsContent}>
+      <ScrollView
+        style={styles.cartItemsScroll}
+        contentContainerStyle={[styles.cartItemsContent, { paddingBottom: bottomBarHeight + 20 }]}
+        showsVerticalScrollIndicator
+      >
         {cartItems.length === 0 ? (
           <View style={styles.emptyCartContainer}>
             <MaterialCommunityIcons
@@ -375,8 +385,21 @@ export const RightPanel: React.FC<RightPanelProps> = ({
         )}
       </ScrollView>
 
-      {/* Calculations Summary Panel */}
-      <View style={[styles.calculationsContainer, { borderTopColor: colors.border }]}>
+      {/* Pinned bottom bar: totals + action buttons. Absolutely positioned so it
+          never gets pushed off-screen; the items ScrollView pads its bottom by
+          this bar's measured height so nothing is hidden behind it. */}
+      <View
+        style={[
+          styles.bottomBar,
+          { backgroundColor: colors.surface, borderTopColor: colors.border },
+        ]}
+        onLayout={(e: { nativeEvent: { layout: { height: number } } }) => {
+          const h = Math.round(e.nativeEvent.layout.height);
+          if (h && h !== bottomBarHeight) setBottomBarHeight(h);
+        }}
+      >
+        {/* Calculations Summary Panel */}
+        <View style={styles.calculationsContainer}>
         <View style={styles.calcRow}>
           <Text style={[styles.calcLabel, { color: colors.textSecondary }]}>Subtotal</Text>
           <Text style={[styles.calcValue, { color: colors.textPrimary }]}>
@@ -415,26 +438,27 @@ export const RightPanel: React.FC<RightPanelProps> = ({
         </View>
       </View>
 
-      {/* Action Buttons Footer */}
-      <View style={[styles.footerContainer, { borderTopColor: colors.border }]}>
-        <View style={styles.footerRow}>
-          <Button
-            label="Clear"
-            variant="outline"
-            size="sm"
-            onPress={() => setConfirmClearVisible(true)}
-            disabled={cartItems.length === 0}
-            style={styles.clearBtn}
-          />
-          <Button
-            label="Checkout"
-            variant="primary"
-            size="sm"
-            icon="credit-card-outline"
-            onPress={handleCollectPayment}
-            disabled={cartItems.length === 0}
-            style={styles.checkoutBtn}
-          />
+        {/* Action Buttons Footer */}
+        <View style={[styles.footerContainer, { borderTopColor: colors.border }]}>
+          <View style={styles.footerRow}>
+            <Button
+              label="Clear"
+              variant="outline"
+              size="sm"
+              onPress={() => setConfirmClearVisible(true)}
+              disabled={cartItems.length === 0}
+              style={styles.clearBtn}
+            />
+            <Button
+              label="Checkout"
+              variant="primary"
+              size="sm"
+              icon="credit-card-outline"
+              onPress={handleCollectPayment}
+              disabled={cartItems.length === 0}
+              style={styles.checkoutBtn}
+            />
+          </View>
         </View>
       </View>
 
@@ -632,6 +656,8 @@ const styles = StyleSheet.create({
     borderLeftWidth: 1,
     display: 'flex',
     flexDirection: 'column',
+    position: 'relative',
+    overflow: 'hidden',
   },
   section: {
     paddingHorizontal: SPACING.sm,
@@ -692,7 +718,6 @@ const styles = StyleSheet.create({
   },
   cartItemsScroll: {
     flex: 1,
-    minHeight: '70%',
   },
   cartItemsContent: {
     paddingBottom: SPACING.md,
@@ -768,8 +793,14 @@ const styles = StyleSheet.create({
     padding: 4,
     marginLeft: SPACING.xs,
   },
-  calculationsContainer: {
+  bottomBar: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
     borderTopWidth: 1,
+  },
+  calculationsContainer: {
     paddingHorizontal: SPACING.sm,
     paddingVertical: SPACING.xs,
   },
