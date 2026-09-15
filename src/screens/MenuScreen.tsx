@@ -59,7 +59,7 @@ export const MenuScreen: React.FC = () => {
           />
         </View>
 
-        {selectedTableName && (
+        {(selectedTableName || orderType === 'takeaway') && (
           <View style={[styles.tableTag, { backgroundColor: colors.primaryLight }]}>
             <MaterialCommunityIcons
               name={orderType === 'takeaway' ? 'bag-checked' : 'table-chair'}
@@ -68,7 +68,9 @@ export const MenuScreen: React.FC = () => {
             />
             <Text style={[styles.tableTagText, { color: colors.primary }]}>
               {orderType === 'takeaway'
-                ? `Takeaway Slot: ${selectedTableName}`
+                ? selectedTableName
+                  ? `Takeaway Slot: ${selectedTableName}`
+                  : 'Takeaway Order'
                 : `Active Table: ${selectedTableName}`}
             </Text>
           </View>

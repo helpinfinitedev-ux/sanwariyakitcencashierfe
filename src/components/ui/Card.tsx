@@ -234,6 +234,36 @@ export const OrderCard: React.FC<OrderCardProps> = ({ order, onPress }) => {
                   DINE-IN
                 </Text>
               </View>
+            ) : order.type === 'delivery' ? (
+              <View
+                style={{
+                  backgroundColor: '#F3E8FF',
+                  borderColor: '#9333EA',
+                  borderWidth: 1,
+                  paddingHorizontal: 7,
+                  paddingVertical: 1,
+                  borderRadius: RADIUS.sm,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                }}
+              >
+                <MaterialCommunityIcons
+                  name="moped"
+                  size={12}
+                  color="#9333EA"
+                  style={{ marginRight: 3 }}
+                />
+                <Text
+                  style={{
+                    color: '#9333EA',
+                    fontSize: 10,
+                    fontWeight: '800',
+                    letterSpacing: 0.6,
+                  }}
+                >
+                  DELIVERY
+                </Text>
+              </View>
             ) : null}
           </View>
           <Text style={[styles.orderTime, { color: colors.textMuted }]}>
