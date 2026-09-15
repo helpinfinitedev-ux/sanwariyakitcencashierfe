@@ -30,12 +30,12 @@ const mapBackendStatus = (status: string): TableStatus => {
 const TAKEAWAY_SECTION = 'Takeaway';
 
 const DEFAULT_TAKEAWAY_SLOTS: Table[] = [
-  { id: 'takeaway-1', name: 'Takeaway 1', tableNo: 'Takeaway 1', floorId: TAKEAWAY_SECTION, status: 'available', capacity: 1, x: 6, y: 8, isTakeaway: true },
-  { id: 'takeaway-2', name: 'Takeaway 2', tableNo: 'Takeaway 2', floorId: TAKEAWAY_SECTION, status: 'available', capacity: 1, x: 29, y: 8, isTakeaway: true },
-  { id: 'takeaway-3', name: 'Takeaway 3', tableNo: 'Takeaway 3', floorId: TAKEAWAY_SECTION, status: 'available', capacity: 1, x: 52, y: 8, isTakeaway: true },
-  { id: 'takeaway-4', name: 'Takeaway 4', tableNo: 'Takeaway 4', floorId: TAKEAWAY_SECTION, status: 'available', capacity: 1, x: 75, y: 8, isTakeaway: true },
-  { id: 'takeaway-5', name: 'Takeaway 5', tableNo: 'Takeaway 5', floorId: TAKEAWAY_SECTION, status: 'available', capacity: 1, x: 6, y: 36, isTakeaway: true },
-  { id: 'takeaway-6', name: 'Takeaway 6', tableNo: 'Takeaway 6', floorId: TAKEAWAY_SECTION, status: 'available', capacity: 1, x: 29, y: 36, isTakeaway: true },
+  { id: 'takeaway-01', name: 'Takeaway 01', tableNo: 'Takeaway 01', floorId: TAKEAWAY_SECTION, status: 'available', capacity: 1, x: 6, y: 8, isTakeaway: true },
+  { id: 'takeaway-02', name: 'Takeaway 02', tableNo: 'Takeaway 02', floorId: TAKEAWAY_SECTION, status: 'available', capacity: 1, x: 29, y: 8, isTakeaway: true },
+  { id: 'takeaway-03', name: 'Takeaway 03', tableNo: 'Takeaway 03', floorId: TAKEAWAY_SECTION, status: 'available', capacity: 1, x: 52, y: 8, isTakeaway: true },
+  { id: 'takeaway-04', name: 'Takeaway 04', tableNo: 'Takeaway 04', floorId: TAKEAWAY_SECTION, status: 'available', capacity: 1, x: 75, y: 8, isTakeaway: true },
+  { id: 'takeaway-05', name: 'Takeaway 05', tableNo: 'Takeaway 05', floorId: TAKEAWAY_SECTION, status: 'available', capacity: 1, x: 6, y: 36, isTakeaway: true },
+  { id: 'takeaway-06', name: 'Takeaway 06', tableNo: 'Takeaway 06', floorId: TAKEAWAY_SECTION, status: 'available', capacity: 1, x: 29, y: 36, isTakeaway: true },
 ];
 
 const mapBackendTable = (t: any, indexInSection: number): Table => {
@@ -82,7 +82,12 @@ const buildFloorPlan = (
   );
   if (!hasTakeawaySection) {
     const takeawaySlots = DEFAULT_TAKEAWAY_SLOTS.map((slot) => {
-      const existing = existingTables.find((et) => et.id === slot.id || et.name === slot.name);
+      const existing = existingTables.find(
+        (et) =>
+          et.id === slot.id ||
+          et.name === slot.name ||
+          (et.name && slot.name && et.name.replace(/\s*0?/, '') === slot.name.replace(/\s*0?/, ''))
+      );
       // A slot is only occupied/billing if an active order is actually tied to it.
       // Once the order completes, it is guaranteed to resolve to 'available'.
       const hasActiveOrder = relevantActiveOrders.some(
@@ -90,7 +95,8 @@ const buildFloorPlan = (
           o.tableId === slot.id ||
           o.tableId === slot.tableNo ||
           o.tableName === slot.name ||
-          o.tableName === slot.tableNo,
+          o.tableName === slot.tableNo ||
+          (slot.name && o.tableName && slot.name.replace(/\s*0?/, '') === o.tableName.replace(/\s*0?/, ''))
       );
       const resolvedStatus: TableStatus = hasActiveOrder
         ? (existing?.status === 'billing' ? 'billing' : 'occupied')

@@ -440,7 +440,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
 
         {/* Action Buttons Footer */}
         <View style={[styles.footerContainer, { borderTopColor: colors.border }]}>
-          <View style={styles.footerRow}>
+          <View style={[styles.footerRow, { marginBottom: SPACING.xs }]}>
             <Button
               label="Clear"
               variant="outline"
@@ -450,15 +450,24 @@ export const RightPanel: React.FC<RightPanelProps> = ({
               style={styles.clearBtn}
             />
             <Button
-              label="Checkout"
-              variant="primary"
+              label={editingOrderId ? 'Update KOT' : 'Send to Kitchen'}
+              variant="secondary"
               size="sm"
-              icon="credit-card-outline"
-              onPress={handleCollectPayment}
+              icon="silverware-clean"
+              onPress={handlePlaceOrder}
               disabled={cartItems.length === 0}
-              style={styles.checkoutBtn}
+              style={styles.sendKotBtn}
             />
           </View>
+          <Button
+            label="Collect Payment & Checkout"
+            variant="primary"
+            size="sm"
+            icon="credit-card-outline"
+            onPress={handleCollectPayment}
+            disabled={cartItems.length === 0}
+            style={styles.checkoutBtn}
+          />
         </View>
       </View>
 
@@ -858,11 +867,15 @@ const styles = StyleSheet.create({
   },
   clearBtn: {
     flex: 0.32,
-    minHeight: 40,
+    minHeight: 38,
+  },
+  sendKotBtn: {
+    flex: 0.68,
+    minHeight: 38,
   },
   checkoutBtn: {
-    flex: 0.68,
-    minHeight: 40,
+    width: '100%',
+    minHeight: 38,
   },
   // Notes Modal Overlay
   overlay: {
