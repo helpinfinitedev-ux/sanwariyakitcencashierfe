@@ -242,7 +242,7 @@ export const useCartStore = create<CartState>((set, get) => ({
     const discountAmount = calculateDiscount(subtotal, discount, discountIsPercent);
     const taxableAmount = Math.max(0, subtotal - discountAmount);
     const gst = calculateGST(taxableAmount); // 5% standard
-    const total = parseFloat((taxableAmount + gst).toFixed(2));
+    const total = Math.round(taxableAmount + gst);
 
     return {
       subtotal,
