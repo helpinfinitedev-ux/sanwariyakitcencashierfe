@@ -113,7 +113,7 @@ function combineOrderItems(existing: OrderItem[], newItems: OrderItem[]): OrderI
 function calculateOrderTotals(items: OrderItem[], discount = 0) {
   const subtotal = items.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
   const gst = Math.round(Math.max(0, subtotal - discount) * 0.05 * 100) / 100; // 5% backend GST
-  const total = Math.round((subtotal + gst - discount) * 100) / 100;
+  const total = Math.round(subtotal + gst - discount);
   return { subtotal, gst, total };
 }
 
