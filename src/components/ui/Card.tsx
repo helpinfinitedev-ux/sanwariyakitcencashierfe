@@ -346,7 +346,7 @@ interface SummaryCardProps {
   value: string | number;
   icon: keyof typeof MaterialCommunityIcons.glyphMap;
   trend?: string;
-  trendDirection?: 'up' | 'down';
+  trendDirection?: 'up' | 'down' | 'neutral';
   variant?: 'primary' | 'secondary';
   style?: ViewStyle;
 }
@@ -369,6 +369,15 @@ export const SummaryCard: React.FC<SummaryCardProps> = ({
   const labelColor = isPrimary ? 'rgba(255,255,255,0.7)' : colors.textSecondary;
   const iconColor = isPrimary ? '#FFFFFF' : colors.primary;
 
+  const isNeutral = trendDirection === 'neutral';
+  const trendColor = isNeutral
+    ? isPrimary
+      ? 'rgba(255,255,255,0.85)'
+      : colors.textSecondary
+    : trendDirection === 'up'
+    ? colors.success
+    : colors.error;
+
   return (
     <Card style={[styles.summaryCard, { backgroundColor: bgColor }, style]}>
       <View style={styles.summaryRow}>
@@ -388,15 +397,17 @@ export const SummaryCard: React.FC<SummaryCardProps> = ({
 
       {trend && (
         <View style={styles.trendRow}>
-          <MaterialCommunityIcons
-            name={trendDirection === 'up' ? 'arrow-up-bold' : 'arrow-down-bold'}
-            size={16}
-            color={trendDirection === 'up' ? colors.success : colors.error}
-          />
+          {!isNeutral && (
+            <MaterialCommunityIcons
+              name={trendDirection === 'up' ? 'arrow-up-bold' : 'arrow-down-bold'}
+              size={16}
+              color={trendColor}
+            />
+          )}
           <Text
             style={[
               styles.trendText,
-              { color: trendDirection === 'up' ? colors.success : colors.error },
+              { color: trendColor },
             ]}
           >
             {trend}
