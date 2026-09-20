@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -28,13 +28,40 @@ import { Button } from '@/components/ui/Button';
 
 type ActiveSectionType = 'overview' | 'customers' | 'orders' | 'delivery';
 
+const getDateRangeParams = (range: TimeRangeFilter): { from?: string; to?: string } => {
+  const now = new Date();
+  const formatYMD = (d: Date) => {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const todayStr = formatYMD(now);
+
+  if (range === 'today') {
+    return { from: todayStr, to: todayStr };
+  }
+  if (range === 'week') {
+    const dayOfWeek = now.getDay();
+    const distanceToMonday = (dayOfWeek + 6) % 7;
+    const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - distanceToMonday);
+    return { from: formatYMD(monday), to: todayStr };
+  }
+  if (range === 'month') {
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+    return { from: formatYMD(firstDay), to: todayStr };
+  }
+  return {};
+};
+
 export const ReportsScreen: React.FC = () => {
   const themeMode = useSettingsStore((state) => state.themeMode);
   const colors = COLORS[themeMode];
   const { width: screenWidth } = useWindowDimensions();
 
   // Stores
-  const { report } = useReportStore();
+  const { report, fetchReport } = useReportStore();
   const { orders } = useOrderStore();
   const { customers } = useCustomerStore();
   const { events: activityEvents } = useActivityLogStore();
@@ -45,6 +72,15 @@ export const ReportsScreen: React.FC = () => {
   const [orderSearchQuery, setOrderSearchQuery] = useState('');
   const [exportModalVisible, setExportModalVisible] = useState(false);
   const [copiedToast, setCopiedToast] = useState(false);
+
+  useEffect(() => {
+    fetchReport(getDateRangeParams(timeRange));
+  }, []);
+
+  const handleTimeRangeChange = (newRange: TimeRangeFilter) => {
+    setTimeRange(newRange);
+    fetchReport(getDateRangeParams(newRange));
+  };
 
   // Aggregated data from isolated service
   const adminData = getAdminReportData(timeRange, orders, activityEvents, customers, report);
@@ -122,7 +158,7 @@ export const ReportsScreen: React.FC = () => {
             return (
               <TouchableOpacity
                 key={item.id}
-                onPress={() => setTimeRange(item.id)}
+                onPress={() => handleTimeRangeChange(item.id)}
                 activeOpacity={0.7}
                 style={[
                   styles.filterPill,
@@ -339,7 +375,84 @@ export const ReportsScreen: React.FC = () => {
             ))}
           </View>
 
-          {/* Sales Channels Breakdown */}
+          {/* Visual Chart 1: Payment Methods Distribution Bar Chart */}
+          <View
+            style={[
+              styles.chartCard,
+              { backgroundColor: colors.surface, borderColor: colors.border },
+              SHADOWS.sm,
+            ]}
+          >
+            <View style={styles.chartHeaderRow}>
+              <View style={styles.chartTitleGroup}>
+                <MaterialCommunityIcons name="chart-pie" size={18} color={colors.primary} />
+                <Text style={[styles.chartTitle, { color: colors.textPrimary }]}>
+                  Payment Methods Distribution Chart
+                </Text>
+              </View>
+              <Text style={[styles.chartSub, { color: colors.textSecondary }]}>
+                Settled Total: {formatCurrency(adminData.paymentBreakdown.reduce((sum, p) => sum + p.amount, 0))}
+              </Text>
+            </View>
+
+            {adminData.paymentBreakdown.reduce((sum, p) => sum + p.amount, 0) === 0 ? (
+              <View style={styles.chartEmptyBox}>
+                <Text style={[styles.chartEmptyText, { color: colors.textMuted }]}>
+                  No payment transactions recorded for this period.
+                </Text>
+              </View>
+            ) : (
+              <View style={styles.chartBody}>
+                <View style={[styles.segmentedBarTrack, { backgroundColor: colors.surfaceLight }]}>
+                  {adminData.paymentBreakdown.map((pm) => {
+                    if (pm.percentage <= 0) return null;
+                    const segmentColor =
+                      pm.method === 'cash'
+                        ? '#10B981'
+                        : pm.method === 'upi'
+                        ? '#3B82F6'
+                        : '#8B5CF6';
+                    return (
+                      <View
+                        key={pm.method}
+                        style={[
+                          styles.segmentedBarFill,
+                          {
+                            width: `${pm.percentage}%`,
+                            backgroundColor: segmentColor,
+                          },
+                        ]}
+                      />
+                    );
+                  })}
+                </View>
+
+                <View style={styles.chartLegendRow}>
+                  {adminData.paymentBreakdown.map((pm) => {
+                    const dotColor =
+                      pm.method === 'cash'
+                        ? '#10B981'
+                        : pm.method === 'upi'
+                        ? '#3B82F6'
+                        : '#8B5CF6';
+                    return (
+                      <View key={pm.method} style={styles.legendItem}>
+                        <View style={[styles.legendDot, { backgroundColor: dotColor }]} />
+                        <Text style={[styles.legendLabel, { color: colors.textSecondary }]}>
+                          {pm.label}:
+                        </Text>
+                        <Text style={[styles.legendValue, { color: colors.textPrimary }]}>
+                          {formatCurrency(pm.amount)} ({pm.percentage}%)
+                        </Text>
+                      </View>
+                    );
+                  })}
+                </View>
+              </View>
+            )}
+          </View>
+
+          {/* Sales Channels Breakdown & Visual Comparison Chart */}
           <View
             style={[
               styles.channelsCard,
@@ -348,7 +461,7 @@ export const ReportsScreen: React.FC = () => {
             ]}
           >
             <Text style={[styles.channelsTitle, { color: colors.textPrimary }]}>
-              Revenue by Channel
+              Revenue by Channel & Comparison Chart
             </Text>
             <View style={styles.channelsGrid}>
               <View style={styles.channelCol}>
@@ -369,6 +482,57 @@ export const ReportsScreen: React.FC = () => {
                   {formatCurrency(adminData.salesSummary.deliveryRevenue)}
                 </Text>
               </View>
+            </View>
+
+            {/* Visual Channel Progress Bars */}
+            <View style={[styles.channelProgressGroup, { borderTopColor: colors.border }]}>
+              {[
+                {
+                  label: 'Dine-In',
+                  value: adminData.salesSummary.dineInRevenue,
+                  color: colors.primary,
+                  icon: 'table-chair',
+                },
+                {
+                  label: 'Takeaway',
+                  value: adminData.salesSummary.takeawayRevenue,
+                  color: colors.secondary,
+                  icon: 'bag-checked',
+                },
+                {
+                  label: 'Delivery',
+                  value: adminData.salesSummary.deliveryRevenue,
+                  color: colors.success,
+                  icon: 'truck-delivery-outline',
+                },
+              ].map((ch) => {
+                const totalRev = adminData.salesSummary.totalRevenue;
+                const percent = totalRev > 0 ? Math.round((ch.value / totalRev) * 100) : 0;
+                return (
+                  <View key={ch.label} style={styles.channelBarRow}>
+                    <View style={styles.channelBarLabelCol}>
+                      <MaterialCommunityIcons name={ch.icon as any} size={14} color={ch.color} />
+                      <Text style={[styles.channelBarName, { color: colors.textPrimary }]}>
+                        {ch.label}
+                      </Text>
+                    </View>
+                    <View style={[styles.channelTrack, { backgroundColor: colors.surfaceLight }]}>
+                      <View
+                        style={[
+                          styles.channelFill,
+                          {
+                            width: `${percent}%`,
+                            backgroundColor: ch.color,
+                          },
+                        ]}
+                      />
+                    </View>
+                    <Text style={[styles.channelBarPercent, { color: colors.textSecondary }]}>
+                      {percent}%
+                    </Text>
+                  </View>
+                );
+              })}
             </View>
           </View>
         </View>
@@ -446,7 +610,7 @@ export const ReportsScreen: React.FC = () => {
                 </View>
               </View>
               <Text style={[styles.rightText, { flex: 1.5, color: colors.textSecondary }]}>
-                {formatDate(cust.lastVisit)}
+                {cust.lastVisit ? formatDate(cust.lastVisit) : '—'}
               </Text>
             </View>
           ))}
@@ -985,6 +1149,113 @@ const styles = StyleSheet.create({
   },
   channelValue: {
     fontSize: TYPOGRAPHY.sizes.lg,
+    fontWeight: 'bold',
+  },
+  chartCard: {
+    borderWidth: 1,
+    borderRadius: RADIUS.md,
+    padding: SPACING.md,
+    marginBottom: SPACING.lg,
+  },
+  chartHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: SPACING.md,
+  },
+  chartTitleGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.xs,
+  },
+  chartTitle: {
+    fontSize: TYPOGRAPHY.sizes.sm,
+    fontWeight: TYPOGRAPHY.weights.bold,
+  },
+  chartSub: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  chartEmptyBox: {
+    paddingVertical: SPACING.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  chartEmptyText: {
+    fontSize: TYPOGRAPHY.sizes.xs,
+    fontStyle: 'italic',
+  },
+  chartBody: {
+    marginTop: SPACING.xs,
+  },
+  segmentedBarTrack: {
+    height: 18,
+    borderRadius: RADIUS.sm,
+    flexDirection: 'row',
+    overflow: 'hidden',
+    marginBottom: SPACING.sm,
+  },
+  segmentedBarFill: {
+    height: '100%',
+  },
+  chartLegendRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: SPACING.md,
+    marginTop: SPACING.xs,
+  },
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  legendDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  legendLabel: {
+    fontSize: 12,
+  },
+  legendValue: {
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  channelProgressGroup: {
+    borderTopWidth: 1,
+    marginTop: SPACING.md,
+    paddingTop: SPACING.md,
+    gap: SPACING.sm,
+  },
+  channelBarRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+  },
+  channelBarLabelCol: {
+    width: 90,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  channelBarName: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  channelTrack: {
+    flex: 1,
+    height: 10,
+    borderRadius: RADIUS.xs,
+    overflow: 'hidden',
+  },
+  channelFill: {
+    height: '100%',
+    borderRadius: RADIUS.xs,
+  },
+  channelBarPercent: {
+    width: 40,
+    textAlign: 'right',
+    fontSize: 12,
     fontWeight: 'bold',
   },
   tableCard: {

@@ -73,14 +73,18 @@ const filterByDate = <T extends { createdAt?: string; timestamp?: string }>(
   let cutoffDate = startOfDay;
 
   if (range === 'week') {
-    cutoffDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    // Current calendar week (Monday to today)
+    const dayOfWeek = now.getDay();
+    const distanceToMonday = (dayOfWeek + 6) % 7;
+    cutoffDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - distanceToMonday);
   } else if (range === 'month') {
-    cutoffDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    // Current calendar month (1st of month to today)
+    cutoffDate = new Date(now.getFullYear(), now.getMonth(), 1);
   }
 
   return items.filter((item) => {
     const rawDate = item.createdAt || item.timestamp;
-    if (!rawDate) return true;
+    if (!rawDate) return false;
     const itemDate = new Date(rawDate);
     return itemDate >= cutoffDate;
   });
@@ -99,7 +103,7 @@ export const getAdminReportData = (
   const filteredOrders = filterByDate(orders, timeRange);
   const completedOrders = filteredOrders.filter((o) => o.status === 'completed');
 
-  // 1. Sales Summary calculation
+  // 1. Sales Summary calculation from real completed orders
   let totalRevenue = 0;
   let grossSales = 0;
   let totalDiscount = 0;
@@ -108,27 +112,22 @@ export const getAdminReportData = (
   let takeawayRevenue = 0;
   let deliveryRevenue = 0;
 
-  // Fallback to base mock report when few completed orders in session
-  if (completedOrders.length === 0 && timeRange === 'today') {
-    totalRevenue = baseReport.salesToday;
-    grossSales = baseReport.salesToday;
-    dineInRevenue = baseReport.dineInSales;
-    takeawayRevenue = baseReport.takeawaySales;
-    deliveryRevenue = baseReport.deliverySales;
-  } else {
-    completedOrders.forEach((o) => {
-      totalRevenue += o.total;
-      grossSales += o.subtotal;
-      totalDiscount += o.discount;
-      totalGst += o.gst;
+  completedOrders.forEach((o) => {
+    totalRevenue += o.total;
+    grossSales += o.subtotal;
+    totalDiscount += o.discount;
+    totalGst += o.gst;
 
-      if (o.type === 'dine-in') dineInRevenue += o.total;
-      else if (o.type === 'takeaway') takeawayRevenue += o.total;
-      else if (o.type === 'delivery') deliveryRevenue += o.total;
-    });
-  }
+    if (o.type === 'takeaway') {
+      takeawayRevenue += o.total;
+    } else if (o.type === 'delivery') {
+      deliveryRevenue += o.total;
+    } else {
+      dineInRevenue += o.total;
+    }
+  });
 
-  const ordersCount = completedOrders.length > 0 ? completedOrders.length : baseReport.ordersTodayCount;
+  const ordersCount = completedOrders.length;
   const avgOrderValue = ordersCount > 0 ? Math.round(totalRevenue / ordersCount) : 0;
 
   const salesSummary: SalesSummaryAggregate = {
@@ -143,7 +142,7 @@ export const getAdminReportData = (
     deliveryRevenue,
   };
 
-  // 2. Payment Method Breakdown
+  // 2. Payment Method Breakdown strictly from real orders
   let cashAmt = 0;
   let cashCount = 0;
   let upiAmt = 0;
@@ -151,29 +150,20 @@ export const getAdminReportData = (
   let cardAmt = 0;
   let cardCount = 0;
 
-  if (completedOrders.length === 0 && timeRange === 'today') {
-    cashAmt = baseReport.cashSales;
-    upiAmt = baseReport.upiSales;
-    cardAmt = baseReport.cardSales;
-    cashCount = Math.round(baseReport.ordersTodayCount * 0.4);
-    upiCount = Math.round(baseReport.ordersTodayCount * 0.45);
-    cardCount = Math.round(baseReport.ordersTodayCount * 0.15);
-  } else {
-    completedOrders.forEach((o) => {
-      if (o.paymentMethod === 'cash') {
-        cashAmt += o.total;
-        cashCount++;
-      } else if (o.paymentMethod === 'upi') {
-        upiAmt += o.total;
-        upiCount++;
-      } else if (o.paymentMethod === 'card') {
-        cardAmt += o.total;
-        cardCount++;
-      }
-    });
-  }
+  completedOrders.forEach((o) => {
+    if (o.paymentMethod === 'cash') {
+      cashAmt += o.total;
+      cashCount++;
+    } else if (o.paymentMethod === 'upi') {
+      upiAmt += o.total;
+      upiCount++;
+    } else if (o.paymentMethod === 'card') {
+      cardAmt += o.total;
+      cardCount++;
+    }
+  });
 
-  const grandPaid = cashAmt + upiAmt + cardAmt || totalRevenue || 1;
+  const grandPaid = cashAmt + upiAmt + cardAmt;
 
   const paymentBreakdown: PaymentBreakdownItem[] = [
     {
@@ -181,25 +171,25 @@ export const getAdminReportData = (
       label: 'Cash Tender',
       amount: cashAmt,
       count: cashCount,
-      percentage: Math.round((cashAmt / grandPaid) * 100),
+      percentage: grandPaid > 0 ? Math.round((cashAmt / grandPaid) * 100) : 0,
     },
     {
       method: 'upi',
       label: 'UPI QR Scan',
       amount: upiAmt,
       count: upiCount,
-      percentage: Math.round((upiAmt / grandPaid) * 100),
+      percentage: grandPaid > 0 ? Math.round((upiAmt / grandPaid) * 100) : 0,
     },
     {
       method: 'card',
       label: 'Card Machine',
       amount: cardAmt,
       count: cardCount,
-      percentage: Math.round((cardAmt / grandPaid) * 100),
+      percentage: grandPaid > 0 ? Math.round((cardAmt / grandPaid) * 100) : 0,
     },
   ];
 
-  // 3. Customer Activity Aggregates
+  // 3. Customer Activity Aggregates strictly from real order history
   const customerActivity: CustomerActivityAggregate[] = customers.map((cust) => {
     const custOrders = orders.filter((o) => o.customerId === cust.id && o.status === 'completed');
     const spent = custOrders.reduce((sum, o) => sum + o.total, 0);
@@ -209,9 +199,9 @@ export const getAdminReportData = (
       id: cust.id,
       name: cust.name,
       phone: cust.phone,
-      orderCount: custOrders.length || (cust.points > 100 ? 4 : 2),
-      totalSpent: spent || (cust.points > 100 ? 3240 : 1450),
-      lastVisit: lastOrder?.createdAt || '2026-08-08T10:15:00Z',
+      orderCount: custOrders.length,
+      totalSpent: spent,
+      lastVisit: lastOrder?.createdAt || '',
       points: cust.points,
     };
   });

@@ -69,8 +69,8 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigate }) 
             title="Today's Sales"
             value={formatCurrency(report.salesToday)}
             icon="currency-inr"
-            trend="+12.4% from yesterday"
-            trendDirection="up"
+            trend="Live Real-Time"
+            trendDirection="neutral"
             variant="primary"
           />
         </View>
@@ -81,8 +81,8 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigate }) 
             title="Orders Completed"
             value={report.ordersTodayCount}
             icon="clipboard-check-outline"
-            trend="+5.2% from average"
-            trendDirection="up"
+            trend={report.ordersTodayCount > 0 ? `${report.ordersTodayCount} settled` : 'No orders yet'}
+            trendDirection="neutral"
           />
         </View>
         <View
