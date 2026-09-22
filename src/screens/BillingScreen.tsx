@@ -54,7 +54,9 @@ export const BillingScreen: React.FC<BillingScreenProps> = ({ onNavigate, showTo
   } = useCartStore();
 
   // Calculation values
-  const { subtotal, discountAmount, gst, total } = getCalculations();
+  const { subtotal, discountAmount, gst, total: rawTotal } = getCalculations();
+  // Round the net payable up to the nearest whole rupee
+  const total = Math.ceil(rawTotal);
 
   // Stores
   const { addOrder, completeOrder, orders } = useOrderStore();
