@@ -21,6 +21,7 @@ import { Button } from '@/components/ui/Button';
 import { NumberPadModal, Dialog } from '@/components/ui/Dialog';
 import { Order, OrderItem } from '@/mock/data';
 import { printKOT } from '@/services/printService';
+import { computeAddedItems } from '@/utils/orderItemsDiff';
 
 interface RightPanelProps {
   onNavigateToBilling?: () => void;
@@ -64,7 +65,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
 
   // Stores for placing/paying orders
   const updateTableStatus = useFloorStore((state) => state.updateTableStatus);
-  const { sendNewOrderToKitchen, updateOrder, orders } = useOrderStore();
+  const { sendNewOrderToKitchen, updateOrder, addItemsToOrder, orders } = useOrderStore();
   const { customers } = useCustomerStore();
 
   // Calculations
@@ -86,7 +87,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
   // first paint, then corrected via onLayout.
   const [bottomBarHeight, setBottomBarHeight] = useState(170);
 
-  const handlePlaceOrder = () => {
+  const handlePlaceOrder = async () => {
     if (cartItems.length === 0) {
       showToastMessage('Cart is empty. Add products first.');
       return;
@@ -130,6 +131,21 @@ export const RightPanel: React.FC<RightPanelProps> = ({
     };
 
     if (isEditing) {
+      // Persist any newly-added items/quantity to the backend first (mirrors
+      // the waiter add-on flow) so they survive a refetch instead of only
+      // living in local state.
+      const originalOrder = orders.find((o) => o.id === orderId);
+      const addedItems = originalOrder ? computeAddedItems(originalOrder.items, cartItems) : [];
+      if (addedItems.length > 0) {
+        try {
+          await addItemsToOrder(orderId, addedItems);
+        } catch (err) {
+          console.error('Failed to save new items to the order:', err);
+          showToastMessage('Failed to save new items. Please try again.');
+          return;
+        }
+      }
+
       // Persist the edited items/totals onto the existing order (keeps its id,
       // number, status and timestamp) instead of creating a duplicate.
       updateOrder(orderId, {

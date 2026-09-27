@@ -89,6 +89,7 @@ const mapBackendOrderToPosOrder = (order: any): Order => {
     type: isTakeaway ? 'takeaway' : (order.type || 'dine-in'),
     createdAt: order.createdAt || new Date().toISOString(),
     rejectionReason: order.rejectionReason,
+    paymentMethod: order.paymentMethod,
   };
 };
 
@@ -125,6 +126,10 @@ interface OrderState {
   addOrder: (order: Order) => void;
   sendNewOrderToKitchen: (order: Order) => Promise<void>;
   updateOrder: (orderId: string, patch: Partial<Order>) => void;
+  addItemsToOrder: (
+    orderId: string,
+    items: { productId: string; quantity: number; notes?: string }[],
+  ) => Promise<void>;
   updateOrderStatus: (orderId: string, status: OrderStatus, rejectionReason?: string) => Promise<void>;
   approveAddonOrder: (addonOrderId: string) => void;
   rejectAddonOrder: (addonOrderId: string, rejectionReason: string) => void;
@@ -229,6 +234,15 @@ export const useOrderStore = create<OrderState>((set, get) => ({
         },
       });
     }
+  },
+
+  // Persist newly-added items on an in-progress order to the backend (mirrors
+  // the waiter's add-on flow). Used by the cashier "Edit Order" screen so
+  // items added mid-edit actually survive a refetch instead of only living in
+  // local Zustand state.
+  addItemsToOrder: async (orderId, items) => {
+    await api.post(`/orders/${orderId}/add-items`, { items });
+    await get().fetchOrders();
   },
 
   updateOrderStatus: async (orderId, status, rejectionReason) => {
@@ -343,7 +357,7 @@ export const useOrderStore = create<OrderState>((set, get) => ({
     const completing = get().orders.find((o) => o.id === orderId);
 
     try {
-      await api.post(`/orders/${orderId}/complete`);
+      await api.post(`/orders/${orderId}/complete`, { paymentMethod });
     } catch (err: any) {
       console.warn('Backend /orders/:id/complete API error or mock offline:', err?.message);
     }
