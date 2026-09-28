@@ -40,6 +40,10 @@ export const socketService = {
     socket = io(getSocketUrl(), {
       auth: { token },
       autoConnect: true,
+      // Force WebSocket and skip XHR long-polling. Long-polling is a stream of
+      // billable HTTP requests that also keep Cloud Run CPU allocated; going
+      // straight to WebSocket avoids that churn (mirrors the KDS client).
+      transports: ['websocket'],
       reconnection: true,
       reconnectionDelay: 1000,
     });
