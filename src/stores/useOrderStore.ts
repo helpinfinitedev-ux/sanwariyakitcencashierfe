@@ -126,7 +126,7 @@ interface OrderState {
   addOrder: (order: Order) => void;
   sendNewOrderToKitchen: (order: Order) => Promise<void>;
   updateOrder: (orderId: string, patch: Partial<Order>) => void;
-  addItemsToOrder: (
+  replaceOrderItems: (
     orderId: string,
     items: { productId: string; quantity: number; notes?: string }[],
   ) => Promise<void>;
@@ -236,13 +236,18 @@ export const useOrderStore = create<OrderState>((set, get) => ({
     }
   },
 
-  // Persist newly-added items on an in-progress order to the backend (mirrors
-  // the waiter's add-on flow). Used by the cashier "Edit Order" screen so
-  // items added mid-edit actually survive a refetch instead of only living in
-  // local Zustand state.
-  addItemsToOrder: async (orderId, items) => {
-    await api.post(`/orders/${orderId}/add-items`, { items });
-    await get().fetchOrders();
+  // Persist the cashier's complete edited cart. This is deliberately a replace
+  // operation rather than an add-only delta so deleted lines and quantity
+  // reductions survive the next backend refresh too.
+  replaceOrderItems: async (orderId, items) => {
+    const response = await api.put(`/orders/${orderId}/items`, { items });
+    const backendOrder = response.data?.data;
+    if (!backendOrder) return;
+
+    const updatedOrder = mapBackendOrderToPosOrder(backendOrder);
+    set((state) => ({
+      orders: state.orders.map((order) => (order.id === orderId ? updatedOrder : order)),
+    }));
   },
 
   updateOrderStatus: async (orderId, status, rejectionReason) => {

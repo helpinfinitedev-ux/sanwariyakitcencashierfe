@@ -21,7 +21,6 @@ import { Button } from '@/components/ui/Button';
 import { Order } from '@/mock/data';
 import { ReceiptPreviewModal } from '@/components/ui/ReceiptPreviewModal';
 import { WhatsAppModal } from '@/components/ui/WhatsAppModal';
-import { computeAddedItems } from '@/utils/orderItemsDiff';
 
 interface BillingScreenProps {
   onNavigate: (route: string) => void;
@@ -60,7 +59,7 @@ export const BillingScreen: React.FC<BillingScreenProps> = ({ onNavigate, showTo
   const total = Math.ceil(rawTotal);
 
   // Stores
-  const { addOrder, completeOrder, addItemsToOrder, orders } = useOrderStore();
+  const { addOrder, completeOrder, replaceOrderItems, orders } = useOrderStore();
   const addOrderToReport = useReportStore((state) => state.addOrderToReport);
   const updateTableStatus = useFloorStore((state) => state.updateTableStatus);
 
@@ -185,14 +184,16 @@ export const BillingScreen: React.FC<BillingScreenProps> = ({ onNavigate, showTo
     try {
       // Store KOT finalized transition
       if (isEditing) {
-        // Persist any items added since the KOT was last saved (e.g. cashier
-        // went straight from editing to checkout without pressing "Update
-        // KOT") so they aren't lost when the order is completed.
-        const originalOrder = orders.find((o) => o.id === orderId);
-        const addedItems = originalOrder ? computeAddedItems(originalOrder.items, cartItems) : [];
-        if (addedItems.length > 0) {
-          await addItemsToOrder(orderId, addedItems);
-        }
+        // Save the entire edited cart before completion so both additions and
+        // deletions are reflected in the final bill.
+        await replaceOrderItems(
+          orderId,
+          cartItems.map((item) => ({
+            productId: item.product.id,
+            quantity: item.quantity,
+            notes: item.notes,
+          })),
+        );
         await completeOrder(orderId, payMethod);
         showToastMessage(`Invoice Completed: ${orderNumber}`, 'success');
       } else {
