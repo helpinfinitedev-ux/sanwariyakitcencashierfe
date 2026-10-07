@@ -21,6 +21,7 @@ import { Button } from '@/components/ui/Button';
 import { Order } from '@/mock/data';
 import { ReceiptPreviewModal } from '@/components/ui/ReceiptPreviewModal';
 import { WhatsAppModal } from '@/components/ui/WhatsAppModal';
+import { areOrderItemsEqual } from '@/utils/orderItemsEqual';
 
 interface BillingScreenProps {
   onNavigate: (route: string) => void;
@@ -184,16 +185,22 @@ export const BillingScreen: React.FC<BillingScreenProps> = ({ onNavigate, showTo
     try {
       // Store KOT finalized transition
       if (isEditing) {
-        // Save the entire edited cart before completion so both additions and
-        // deletions are reflected in the final bill.
-        await replaceOrderItems(
-          orderId,
-          cartItems.map((item) => ({
-            productId: item.product.id,
-            quantity: item.quantity,
-            notes: item.notes,
-          })),
-        );
+        const originalOrder = orders.find((order) => order.id === orderId);
+
+        // Collecting payment for an unchanged order must not depend on the
+        // edit-only replacement endpoint. Persist first only when the cashier
+        // actually changed a line, so additions, removals and quantity edits
+        // still survive completion.
+        if (!originalOrder || !areOrderItemsEqual(originalOrder.items, cartItems)) {
+          await replaceOrderItems(
+            orderId,
+            cartItems.map((item) => ({
+              productId: item.product.id,
+              quantity: item.quantity,
+              notes: item.notes,
+            })),
+          );
+        }
         await completeOrder(orderId, payMethod);
         showToastMessage(`Invoice Completed: ${orderNumber}`, 'success');
       } else {
