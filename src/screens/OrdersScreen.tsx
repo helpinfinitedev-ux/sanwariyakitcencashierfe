@@ -336,15 +336,13 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({ onNavigate, showToas
               <View style={[styles.modalActionsRow, { borderTopColor: colors.border }]}>
                  {selectedOrder.status !== 'completed' && selectedOrder.status !== 'cancelled' && selectedOrder.status !== 'rejected' ? (
                   <>
-                    {selectedOrder.type === 'takeaway' && (
-                      <Button
-                        label="Cancel Order"
-                        variant="danger"
-                        icon="close-circle-outline"
-                        onPress={handleCancelOrder}
-                        style={{ marginRight: SPACING.xs }}
-                      />
-                    )}
+                    <Button
+                      label="Cancel Order"
+                      variant="danger"
+                      icon="close-circle-outline"
+                      onPress={handleCancelOrder}
+                      style={{ marginRight: SPACING.xs }}
+                    />
                     <Button
                       label="Print KOT"
                       variant="outline"
