@@ -33,8 +33,9 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({ onNavigate, showToas
   const colors = COLORS[themeMode];
 
   // Store variables
-  const { orders } = useOrderStore();
+  const { orders, cancelOrder } = useOrderStore();
   const loadOrderIntoCart = useCartStore((state) => state.loadOrderIntoCart);
+  const clearCart = useCartStore((state) => state.clearCart);
 
   // Tab state
   const [activeTab, setActiveTab] = useState<'active' | 'history'>('active');
@@ -98,6 +99,17 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({ onNavigate, showToas
       const res = await printKOT(selectedOrder);
       showToastMessage(res.message, res.success ? 'success' : 'error');
     }
+  };
+
+  const handleCancelOrder = () => {
+    if (!selectedOrder) return;
+    const label = selectedOrder.orderNumber;
+    cancelOrder(selectedOrder.id);
+    // Clear any cart/selection tied to this order and close the details view.
+    clearCart();
+    setDetailModalVisible(false);
+    setSelectedOrder(null);
+    showToastMessage(`Order ${label} cancelled.`, 'error');
   };
 
   return (
@@ -324,6 +336,15 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({ onNavigate, showToas
               <View style={[styles.modalActionsRow, { borderTopColor: colors.border }]}>
                  {selectedOrder.status !== 'completed' && selectedOrder.status !== 'cancelled' && selectedOrder.status !== 'rejected' ? (
                   <>
+                    {selectedOrder.type === 'takeaway' && (
+                      <Button
+                        label="Cancel Order"
+                        variant="danger"
+                        icon="close-circle-outline"
+                        onPress={handleCancelOrder}
+                        style={{ marginRight: SPACING.xs }}
+                      />
+                    )}
                     <Button
                       label="Print KOT"
                       variant="outline"

@@ -201,11 +201,11 @@ export const BillingScreen: React.FC<BillingScreenProps> = ({ onNavigate, showTo
             })),
           );
         }
-        await completeOrder(orderId, payMethod);
+        await completeOrder(orderId, payMethod, discountAmount, total);
         showToastMessage(`Invoice Completed: ${orderNumber}`, 'success');
       } else {
         addOrder(finalOrder);
-        await completeOrder(orderId, payMethod);
+        await completeOrder(orderId, payMethod, discountAmount, total);
         showToastMessage(`Direct Invoice Completed: ${orderNumber}`, 'success');
       }
 
