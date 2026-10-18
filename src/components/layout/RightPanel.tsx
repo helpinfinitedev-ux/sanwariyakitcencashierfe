@@ -491,13 +491,14 @@ export const RightPanel: React.FC<RightPanelProps> = ({
       {/* Modals & Dialog Overlays */}
       <NumberPadModal
         visible={discountModalVisible}
-        title="Apply Flat Discount (INR)"
+        title="Apply Discount (%)"
         initialValue={discount.toString()}
-        suffix="₹"
+        suffix="%"
         onConfirm={(val) => {
-          setDiscount(val, false);
+          const pct = Math.min(100, Math.max(0, val));
+          setDiscount(pct, true);
           setDiscountModalVisible(false);
-          showToastMessage(`Discount applied: ₹${val}`);
+          showToastMessage(`Discount applied: ${pct}%`);
         }}
         onCancel={() => setDiscountModalVisible(false)}
       />
