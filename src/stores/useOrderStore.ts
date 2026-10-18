@@ -134,7 +134,7 @@ interface OrderState {
   approveAddonOrder: (addonOrderId: string) => void;
   rejectAddonOrder: (addonOrderId: string, rejectionReason: string) => void;
   getApprovedAddonsForOrder: (parentOrderId: string) => Order[];
-  completeOrder: (orderId: string, paymentMethod: Order['paymentMethod']) => Promise<void>;
+  completeOrder: (orderId: string, paymentMethod: Order['paymentMethod'], discount?: number, total?: number) => Promise<void>;
   cancelOrder: (orderId: string) => Promise<void>;
 }
 
@@ -357,12 +357,14 @@ export const useOrderStore = create<OrderState>((set, get) => ({
     );
   },
 
-  completeOrder: async (orderId, paymentMethod) => {
+  completeOrder: async (orderId, paymentMethod, discount, total) => {
     // Capture the table this order occupies before completing it.
     const completing = get().orders.find((o) => o.id === orderId);
 
     try {
-      await api.post(`/orders/${orderId}/complete`, { paymentMethod });
+      // Send the checkout discount + charged total so the backend persists the
+      // net amount (Today's Sales / reports then reflect the discount).
+      await api.post(`/orders/${orderId}/complete`, { paymentMethod, discount, total });
     } catch (err: any) {
       console.warn('Backend /orders/:id/complete API error or mock offline:', err?.message);
     }
