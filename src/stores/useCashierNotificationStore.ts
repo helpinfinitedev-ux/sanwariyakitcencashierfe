@@ -27,9 +27,9 @@ interface CashierNotificationState {
   unreadCount: () => number;
 }
 
-// In-memory bell feed for the cashier POS. Fed by realtime socket events
-// (e.g. order:served -> "ready to bill"). Not persisted — a session-lifetime
-// alert list, mirroring the waiter app's notification store.
+// In-memory bell feed for the cashier POS. Fed by the billing poller, which
+// alerts when an order becomes ready to bill (POS status -> `billing`). Not
+// persisted — a session-lifetime alert list, mirroring the waiter app's store.
 export const useCashierNotificationStore = create<CashierNotificationState>((set, get) => ({
   notifications: [],
   pushNotification: (n) =>

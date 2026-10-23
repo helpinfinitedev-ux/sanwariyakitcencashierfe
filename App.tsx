@@ -7,7 +7,7 @@ import { useMenuStore } from '@/stores/useMenuStore';
 import { useFloorStore } from '@/stores/useFloorStore';
 import { useCustomerStore } from '@/stores/useCustomerStore';
 import { useReportStore } from '@/stores/useReportStore';
-import { socketService } from '@/services/socket';
+import { billingPoller } from '@/services/billingPoller';
 import { COLORS } from '@/theme/theme';
 import { POSLayout } from '@/components/layout/POSLayout';
 import { DashboardScreen } from '@/screens/DashboardScreen';
@@ -37,19 +37,22 @@ export default function App() {
     initAuth();
   }, [checkAuthSession]);
 
-  // Synchronize REST orders and WebSocket connectivity
+  // Load initial data, then keep orders + floor fresh by polling over REST.
+  // The cashier no longer opens a Socket.IO connection — a persistent socket is
+  // billed at Cloud Run's active-CPU rate for the whole shift. The poller only
+  // alerts on "ready to bill"; everything else is a plain background refresh.
   useEffect(() => {
     if (isAuthenticated && token) {
-      // Connect to Socket.IO room with user's JWT token
-      socketService.connect(token, triggerToast);
       // Fetch initial live data from the backend
       useOrderStore.getState().fetchOrders();
       useMenuStore.getState().fetchMenu();
       useFloorStore.getState().fetchTables();
       useCustomerStore.getState().fetchCustomers();
       useReportStore.getState().fetchReport();
+      // Start the ready-to-bill poller (replaces the realtime socket).
+      billingPoller.start(triggerToast);
     } else {
-      socketService.disconnect();
+      billingPoller.stop();
     }
   }, [isAuthenticated, token]);
 
