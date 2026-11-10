@@ -1,0 +1,14 @@
+node_modules
+dist
+.expo
+web-build
+.git
+.gitignore
+.DS_Store
+*.md
+.claude
+.env*.local
+npm-debug.*
+*.tsbuildinfo
+/ios
+/android
