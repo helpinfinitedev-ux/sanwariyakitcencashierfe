@@ -43,13 +43,25 @@ const getStoredToken = (): string | null => {
   return null;
 };
 
-// API Base URL config supplied by Vite at build time.
+declare global {
+  interface Window {
+    __APP_CONFIG__?: { apiUrl?: string };
+  }
+}
+
+// API base URL resolution, in priority order:
+//   1. Runtime config written by the container at startup (window.__APP_CONFIG__),
+//      sourced from the Cloud Run env var — change it and redeploy, no rebuild.
+//   2. Build-time Vite env var (import.meta.env) for local dev / baked builds.
+//   3. localhost fallback for a bare local setup.
 const getApiUrl = () => {
+  const runtimeUrl = window.__APP_CONFIG__?.apiUrl;
   const envUrl = import.meta.env.VITE_PUBLIC_API_URL;
-  if (!envUrl || envUrl === 'mock_api_url') {
+  const url = runtimeUrl || envUrl;
+  if (!url || url === 'mock_api_url') {
     return 'http://localhost:4000/api';
   }
-  return envUrl.endsWith('/api') ? envUrl : `${envUrl}/api`;
+  return url.endsWith('/api') ? url : `${url}/api`;
 };
 
 export const api = axios.create({
