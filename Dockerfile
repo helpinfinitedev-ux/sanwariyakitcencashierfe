@@ -29,6 +29,11 @@ ENV PORT=8080
 # SPA-aware nginx config (template is processed on container start).
 COPY nginx.conf /etc/nginx/templates/default.conf.template
 
+# Startup hook: writes /env-config.js from the runtime env var before nginx
+# starts. The nginx image runs executable *.sh files in /docker-entrypoint.d.
+COPY docker/40-env-config.sh /docker-entrypoint.d/40-env-config.sh
+RUN chmod +x /docker-entrypoint.d/40-env-config.sh
+
 # Copy the built assets.
 COPY --from=build /app/dist /usr/share/nginx/html
 
